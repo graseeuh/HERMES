@@ -1,0 +1,30 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Claude settings
+.claude/
+
+# Environment variables
+.env
+
+# Generated prompts
+knowledge_base/prompts/
+
+# OS/IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs and temp
+*.log
+*.tmp
+nul
+
+# Personal data
+data/
