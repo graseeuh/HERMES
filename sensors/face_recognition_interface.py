@@ -2,12 +2,42 @@
 HERMES Face Recognition Interface
 Wrapper for the face_recognition library to identify enrolled users.
 Uses CNN model with CUDA acceleration when available (e.g., RTX 4060 Ti).
+
+Security Note:
+- Face encodings are stored using numpy's .npz format (secure, no code execution)
+- Biometric data is encrypted at rest using Fernet symmetric encryption
+- Encryption key stored in system keyring (Windows Credential Manager)
+- Previous pickle format (.pkl) is automatically migrated and deleted
 """
 
-import pickle
+import base64
+import json
+import os
+import secrets
 from pathlib import Path
 from typing import Optional
 import numpy as np
+
+# Encryption support
+try:
+    from cryptography.fernet import Fernet
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    CRYPTO_AVAILABLE = True
+except ImportError:
+    CRYPTO_AVAILABLE = False
+
+# Keyring for secure key storage
+try:
+    import keyring
+    KEYRING_AVAILABLE = True
+except ImportError:
+    KEYRING_AVAILABLE = False
+
+
+# Constants for key management
+KEYRING_SERVICE = "HERMES_FaceRecognition"
+KEYRING_KEY_NAME = "encryption_key"
 
 try:
     import face_recognition
@@ -18,12 +48,85 @@ except ImportError:
     )
 
 
+def _get_or_create_encryption_key() -> Optional[bytes]:
+    """
+    Get or create the encryption key for face encodings.
+
+    Key storage priority:
+    1. System keyring (Windows Credential Manager, macOS Keychain, etc.)
+    2. Environment variable HERMES_FACE_KEY (base64 encoded)
+    3. Generate and store new key
+
+    Returns:
+        Fernet key bytes or None if encryption not available
+    """
+    if not CRYPTO_AVAILABLE:
+        return None
+
+    # Try to get from keyring first (most secure)
+    if KEYRING_AVAILABLE:
+        try:
+            stored_key = keyring.get_password(KEYRING_SERVICE, KEYRING_KEY_NAME)
+            if stored_key:
+                return base64.urlsafe_b64decode(stored_key.encode())
+        except (keyring.errors.KeyringError, ValueError):
+            pass  # Fall through to other methods
+
+    # Try environment variable
+    env_key = os.environ.get('HERMES_FACE_KEY')
+    if env_key:
+        try:
+            return base64.urlsafe_b64decode(env_key.encode())
+        except ValueError:
+            pass
+
+    # Generate new key and try to store it
+    new_key = Fernet.generate_key()
+
+    if KEYRING_AVAILABLE:
+        try:
+            keyring.set_password(
+                KEYRING_SERVICE,
+                KEYRING_KEY_NAME,
+                base64.urlsafe_b64encode(new_key).decode()
+            )
+            print("Generated and stored new encryption key in system keyring")
+            return new_key
+        except keyring.errors.KeyringError:
+            pass
+
+    # Last resort: warn user and return the key
+    # In production, you might want to require keyring or env var
+    print("Warning: Could not store encryption key securely.")
+    print(f"Set HERMES_FACE_KEY environment variable to: {base64.urlsafe_b64encode(new_key).decode()}")
+    return new_key
+
+
+def _encrypt_data(data: bytes, key: bytes) -> bytes:
+    """Encrypt data using Fernet symmetric encryption."""
+    if not CRYPTO_AVAILABLE:
+        return data
+    f = Fernet(key)
+    return f.encrypt(data)
+
+
+def _decrypt_data(encrypted_data: bytes, key: bytes) -> bytes:
+    """Decrypt data using Fernet symmetric encryption."""
+    if not CRYPTO_AVAILABLE:
+        return encrypted_data
+    f = Fernet(key)
+    return f.decrypt(encrypted_data)
+
+
 def _check_cuda_available() -> bool:
     """Check if CUDA is available for dlib/face_recognition."""
     try:
         import dlib
         return dlib.DLIB_USE_CUDA and dlib.cuda.get_num_devices() > 0
-    except Exception:
+    except (ImportError, AttributeError, RuntimeError):
+        # ImportError: dlib not installed
+        # AttributeError: dlib doesn't have CUDA support compiled
+        # RuntimeError: CUDA initialization failed
         return False
 
 
@@ -44,23 +147,38 @@ class FaceRecognitionInterface:
         Initialize the face recognition interface.
 
         Args:
-            encodings_path: Path to store face encodings. Defaults to data/face_encodings.pkl
+            encodings_path: Path to store face encodings. Defaults to data/face_encodings.npz
             tolerance: How strict the face matching is. Lower = stricter. Default 0.6
+                       Must be between 0.0 and 1.0.
             model: Face detection model - 'cnn' (GPU) or 'hog' (CPU).
                    Defaults to 'cnn' if CUDA available, else 'hog'.
         """
+        # Validate tolerance
+        if not 0.0 <= tolerance <= 1.0:
+            raise ValueError(f"Tolerance must be between 0.0 and 1.0, got {tolerance}")
+
         if encodings_path is None:
-            # Default to data/face_encodings.pkl relative to project root
+            # Default to data/face_encodings.npz relative to project root
             project_root = Path(__file__).parent.parent
-            self.encodings_path = project_root / "data" / "face_encodings.pkl"
+            self.encodings_path = project_root / "data" / "face_encodings.npz"
         else:
             self.encodings_path = Path(encodings_path)
+            # Ensure .npz extension for security
+            if self.encodings_path.suffix == '.pkl':
+                self.encodings_path = self.encodings_path.with_suffix('.npz')
 
         # Ensure data directory exists
         self.encodings_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.tolerance = tolerance
         self.encodings: dict[str, list[np.ndarray]] = {}
+
+        # Initialize encryption
+        self._encryption_key = _get_or_create_encryption_key()
+        if self._encryption_key:
+            print("Biometric data encryption: ENABLED")
+        else:
+            print("Warning: Biometric data encryption not available. Install 'cryptography' package.")
 
         # Determine face detection model
         self.cuda_available = _check_cuda_available()
@@ -78,9 +196,55 @@ class FaceRecognitionInterface:
         # Load existing encodings if available
         self._load_encodings()
 
+    def _migrate_pickle_file(self) -> bool:
+        """
+        Migrate old pickle format to secure numpy format.
+
+        Returns:
+            True if migration occurred, False otherwise
+        """
+        # Check for old pickle file
+        old_pkl_path = self.encodings_path.with_suffix('.pkl')
+        if not old_pkl_path.exists():
+            return False
+
+        print(f"Found legacy pickle file, migrating to secure format...")
+
+        try:
+            # Load from pickle (one-time only for migration)
+            import pickle
+            with open(old_pkl_path, 'rb') as f:
+                loaded_data = pickle.load(f)
+
+            if isinstance(loaded_data, dict):
+                self.encodings = {}
+                for name, enc_list in loaded_data.items():
+                    if isinstance(name, str) and isinstance(enc_list, list):
+                        self.encodings[name] = enc_list
+
+                # Save in new secure format
+                self._save_encodings()
+
+                # Remove old pickle file (security: prevents future pickle loading)
+                old_pkl_path.unlink()
+                print(f"Migration complete. Old pickle file removed for security.")
+                return True
+
+        except Exception as e:
+            print(f"Warning: Could not migrate pickle file: {e}")
+            print("Starting fresh for security reasons.")
+
+        return False
+
     def _load_encodings(self) -> None:
-        """Load face encodings from disk with robust error handling."""
+        """Load face encodings from disk using secure, encrypted numpy format."""
+        import io
+
         self.encodings = {}
+
+        # First, check for and migrate any old pickle file
+        if self._migrate_pickle_file():
+            return  # Migration already loaded the encodings
 
         if not self.encodings_path.exists():
             print("No existing face encodings found (first run)")
@@ -92,46 +256,84 @@ class FaceRecognitionInterface:
             return
 
         try:
+            # Read raw data
             with open(self.encodings_path, 'rb') as f:
-                loaded_data = pickle.load(f)
+                data = f.read()
 
-            # Validate loaded data
-            if not isinstance(loaded_data, dict):
-                print(f"Warning: Invalid encodings format, starting fresh")
-                return
+            # Decrypt if encryption is available
+            if self._encryption_key:
+                try:
+                    data = _decrypt_data(data, self._encryption_key)
+                except Exception as e:
+                    print(f"Warning: Could not decrypt encodings (wrong key?): {e}")
+                    print("Starting fresh - previous face enrollments lost")
+                    self.encodings = {}
+                    return
 
-            # Validate each entry
-            valid_encodings = {}
-            for name, enc_list in loaded_data.items():
-                if isinstance(name, str) and isinstance(enc_list, list) and len(enc_list) > 0:
-                    valid_encodings[name] = enc_list
+            # Load from numpy format (from bytes buffer)
+            buffer = io.BytesIO(data)
+            with np.load(buffer, allow_pickle=False) as npz_data:
+                # Load the index (list of names and their encoding counts)
+                if '_index' not in npz_data:
+                    print("Warning: Invalid encodings format (no index), starting fresh")
+                    return
 
-            self.encodings = valid_encodings
+                index = json.loads(str(npz_data['_index']))
 
-            if self.encodings:
-                print(f"Loaded {len(self.encodings)} enrolled face(s)")
+                # Reconstruct the encodings dict
+                for name, count in index.items():
+                    self.encodings[name] = []
+                    for i in range(count):
+                        key = f"{name}_{i}"
+                        if key in npz_data:
+                            self.encodings[name].append(npz_data[key])
+
+            # Validate we got something
+            valid_count = sum(1 for encs in self.encodings.values() if encs)
+            if valid_count > 0:
+                print(f"Loaded {valid_count} enrolled face(s)")
             else:
                 print("No valid encodings found in file")
+                self.encodings = {}
 
-        except pickle.UnpicklingError as e:
-            print(f"Warning: Corrupted encodings file, starting fresh: {e}")
-            self.encodings = {}
-        except EOFError:
-            print("Warning: Incomplete encodings file, starting fresh")
-            self.encodings = {}
-        except Exception as e:
+        except (OSError, ValueError, json.JSONDecodeError) as e:
             print(f"Warning: Could not load encodings ({type(e).__name__}): {e}")
             self.encodings = {}
 
     def _save_encodings(self) -> None:
-        """Save face encodings to disk."""
+        """Save face encodings to disk using secure, encrypted numpy format."""
+        import io
+
         # Ensure directory exists
         self.encodings_path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
+            # Build arrays dict for numpy.savez_compressed
+            arrays = {}
+
+            # Create an index mapping names to their encoding counts
+            index = {name: len(encs) for name, encs in self.encodings.items()}
+            arrays['_index'] = np.array(json.dumps(index))
+
+            # Save each encoding as a separate array
+            for name, enc_list in self.encodings.items():
+                for i, encoding in enumerate(enc_list):
+                    arrays[f"{name}_{i}"] = np.asarray(encoding)
+
+            # Save to a bytes buffer first
+            buffer = io.BytesIO()
+            np.savez_compressed(buffer, **arrays)
+            data = buffer.getvalue()
+
+            # Encrypt if available
+            if self._encryption_key:
+                data = _encrypt_data(data, self._encryption_key)
+
+            # Write to file
             with open(self.encodings_path, 'wb') as f:
-                pickle.dump(self.encodings, f)
-        except Exception as e:
+                f.write(data)
+
+        except (OSError, ValueError) as e:
             print(f"Error saving encodings: {e}")
             raise
 

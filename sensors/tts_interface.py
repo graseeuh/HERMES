@@ -3,9 +3,13 @@ HERMES Text-to-Speech Interface
 Unified TTS wrapper supporting multiple backends.
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Optional, List, Dict
 import threading
+
+# Set up logger for TTS debugging
+logger = logging.getLogger(__name__)
 
 try:
     import pyttsx3
@@ -55,7 +59,10 @@ class TTSInterface:
 
             self._initialized = True
             return True
-        except Exception as e:
+        except (RuntimeError, OSError) as e:
+            # RuntimeError: pyttsx3 engine initialization failure
+            # OSError: Audio device issues
+            logger.error(f"TTS initialization failed: {e}")
             print(f"TTS initialization failed: {e}")
             return False
 
@@ -81,7 +88,9 @@ class TTSInterface:
                 if block:
                     self._engine.runAndWait()
                 return True
-            except Exception as e:
+            except RuntimeError as e:
+                # Engine busy or audio device issues
+                logger.warning(f"TTS speak error: {e}")
                 print(f"TTS error: {e}")
                 return False
 
@@ -99,8 +108,9 @@ class TTSInterface:
         if self._engine:
             try:
                 self._engine.stop()
-            except Exception:
-                pass
+            except RuntimeError as e:
+                # Engine may already be stopped or not running
+                logger.debug(f"TTS stop() - engine not running: {e}")
 
     def list_voices(self) -> List[Dict]:
         """List available voices."""
@@ -119,8 +129,8 @@ class TTSInterface:
                     }
                     for v in voices
                 ]
-            except Exception:
-                pass
+            except (RuntimeError, AttributeError) as e:
+                logger.warning(f"Failed to list TTS voices: {e}")
         return []
 
     def set_voice(self, voice_id: str) -> bool:
@@ -129,7 +139,8 @@ class TTSInterface:
             try:
                 self._engine.setProperty('voice', voice_id)
                 return True
-            except Exception:
+            except (RuntimeError, ValueError) as e:
+                logger.warning(f"Failed to set TTS voice '{voice_id}': {e}")
                 return False
         return False
 
@@ -140,7 +151,8 @@ class TTSInterface:
                 self._engine.setProperty('rate', rate)
                 self.config.rate = rate
                 return True
-            except Exception:
+            except (RuntimeError, ValueError) as e:
+                logger.warning(f"Failed to set TTS rate to {rate}: {e}")
                 return False
         return False
 
@@ -152,7 +164,8 @@ class TTSInterface:
                 self._engine.setProperty('volume', volume)
                 self.config.volume = volume
                 return True
-            except Exception:
+            except (RuntimeError, ValueError) as e:
+                logger.warning(f"Failed to set TTS volume to {volume}: {e}")
                 return False
         return False
 

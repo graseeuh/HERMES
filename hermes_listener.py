@@ -12,12 +12,74 @@ Usage:
 Runs in background, always listening. Say "Hey Hermes" to activate.
 """
 
+import re
 import sys
 import time
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple
 
 from main import HERMES
+
+
+# ============================================================================
+# Input Validation for Voice Commands
+# ============================================================================
+
+# Maximum allowed command length (prevents buffer overflow attacks)
+MAX_COMMAND_LENGTH = 500
+
+# Patterns that might indicate malicious input
+DANGEROUS_PATTERNS = [
+    r';\s*(rm|del|format|shutdown|reboot)',  # Command chaining with dangerous commands
+    r'\$\(',  # Command substitution
+    r'`[^`]+`',  # Backtick command substitution
+    r'\|\s*(bash|sh|cmd|powershell)',  # Piping to shells
+    r'>\s*/etc/',  # Writing to system directories (Unix)
+    r'>\s*C:\\Windows',  # Writing to system directories (Windows)
+    r'__(import|class|bases|subclasses)__',  # Python introspection attacks
+    r'eval\s*\(',  # Eval injection
+    r'exec\s*\(',  # Exec injection
+    r'os\.(system|popen|exec)',  # OS command execution
+    r'subprocess\.',  # Subprocess calls
+]
+
+# Compiled patterns for efficiency
+_DANGEROUS_REGEX = re.compile('|'.join(DANGEROUS_PATTERNS), re.IGNORECASE)
+
+
+def validate_voice_input(text: str) -> Tuple[bool, str, str]:
+    """
+    Validate voice command input for security.
+
+    Args:
+        text: The raw voice command text
+
+    Returns:
+        Tuple of (is_valid, sanitized_text, error_message)
+        If is_valid is False, error_message explains why
+    """
+    if not text:
+        return False, "", "Empty command"
+
+    if not isinstance(text, str):
+        return False, "", "Invalid input type"
+
+    # Check length
+    if len(text) > MAX_COMMAND_LENGTH:
+        return False, "", f"Command too long ({len(text)} > {MAX_COMMAND_LENGTH} chars)"
+
+    # Check for dangerous patterns
+    if _DANGEROUS_REGEX.search(text):
+        return False, "", "Command contains potentially unsafe patterns"
+
+    # Basic sanitization - remove control characters but keep printable text
+    sanitized = ''.join(char for char in text if char.isprintable() or char in '\n\t')
+    sanitized = sanitized.strip()
+
+    if not sanitized:
+        return False, "", "Command empty after sanitization"
+
+    return True, sanitized, ""
 from sensors.voice_interface import VoiceInterface, VoiceCommand
 from sensors.tts_interface import TTSInterface, TTSConfig
 from integration.claude_llm_client import ClaudeLLMClient, ClaudeLLMConfig
@@ -191,7 +253,13 @@ class HermesListener:
         Returns:
             True if should exit, False otherwise
         """
-        text = command.text
+        # Validate and sanitize input
+        is_valid, text, error = validate_voice_input(command.text)
+        if not is_valid:
+            print(f"⚠️ Invalid command: {error}")
+            self._speak("Sorry, I couldn't process that command.")
+            return False
+
         text_lower = text.lower()
 
         print(f"Heard: \"{text}\"")
@@ -253,8 +321,43 @@ class HermesListener:
 
         return False
 
+    def _sanitize_filename(self, filename: str) -> Optional[str]:
+        """
+        Sanitize a filename for security.
+
+        Args:
+            filename: Raw filename from voice input
+
+        Returns:
+            Sanitized filename or None if invalid
+        """
+        if not filename:
+            return None
+
+        # Remove any path separators (prevent directory traversal)
+        filename = filename.replace('/', '').replace('\\', '')
+        filename = filename.replace('..', '')
+
+        # Remove other dangerous characters
+        # Allow only alphanumeric, underscore, hyphen, dot
+        sanitized = re.sub(r'[^a-zA-Z0-9_\-.]', '_', filename)
+
+        # Remove leading dots (hidden files) and multiple dots
+        sanitized = sanitized.lstrip('.')
+        sanitized = re.sub(r'\.{2,}', '.', sanitized)
+
+        # Limit length
+        if len(sanitized) > 100:
+            sanitized = sanitized[:100]
+
+        # Must have something left
+        if not sanitized or sanitized == '.':
+            return None
+
+        return sanitized
+
     def _create_file(self, text: str) -> None:
-        """Create a file from voice command."""
+        """Create a file from voice command with security validation."""
         from pathlib import Path
 
         # Extract filename
@@ -278,11 +381,27 @@ class HermesListener:
                 print("Didn't catch the filename. Please try again.")
                 return
 
+        # Security: Sanitize the filename
+        filename = self._sanitize_filename(filename)
+        if not filename:
+            print("❌ Invalid filename. Please use only letters, numbers, and underscores.")
+            self._speak("That filename isn't valid. Please try again.")
+            return
+
         # Add extension if needed
         if '.' not in filename:
             filename += '.txt'
 
-        filepath = Path.cwd() / filename
+        # Security: Resolve path and verify it's within current directory
+        project_dir = Path.cwd().resolve()
+        filepath = (project_dir / filename).resolve()
+
+        # Verify the file would be created within the project directory
+        if not str(filepath).startswith(str(project_dir)):
+            print("❌ Security error: Cannot create files outside project directory.")
+            self._speak("I can't create files outside the project folder.")
+            return
+
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         try:
@@ -291,8 +410,10 @@ class HermesListener:
                 f.write(f"# {timestamp}\n\n")
 
             print(f"✅ Created: {filepath}")
-        except Exception as e:
+            self._speak(f"Created file {filename}")
+        except OSError as e:
             print(f"❌ Failed to create file: {e}")
+            self._speak("Sorry, I couldn't create that file.")
 
     def _show_status(self) -> None:
         """Show HERMES status."""

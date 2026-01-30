@@ -8,12 +8,73 @@ Usage:
 Say "Hermes" to activate, then speak your command.
 """
 
-import os
+import re
 import sys
 from pathlib import Path
 from datetime import datetime
+from typing import Optional, Tuple
 
 from main import HERMES
+
+
+# ============================================================================
+# Input Validation (shared security patterns)
+# ============================================================================
+
+MAX_COMMAND_LENGTH = 500
+
+DANGEROUS_PATTERNS = [
+    r';\s*(rm|del|format|shutdown|reboot)',
+    r'\$\(',
+    r'`[^`]+`',
+    r'\|\s*(bash|sh|cmd|powershell)',
+    r'>\s*/etc/',
+    r'>\s*C:\\Windows',
+    r'__(import|class|bases|subclasses)__',
+    r'eval\s*\(',
+    r'exec\s*\(',
+    r'os\.(system|popen|exec)',
+    r'subprocess\.',
+]
+
+_DANGEROUS_REGEX = re.compile('|'.join(DANGEROUS_PATTERNS), re.IGNORECASE)
+
+
+def validate_command(text: str) -> Tuple[bool, str, str]:
+    """Validate voice command for security."""
+    if not text or not isinstance(text, str):
+        return False, "", "Invalid input"
+
+    if len(text) > MAX_COMMAND_LENGTH:
+        return False, "", "Command too long"
+
+    if _DANGEROUS_REGEX.search(text):
+        return False, "", "Command contains unsafe patterns"
+
+    sanitized = ''.join(c for c in text if c.isprintable() or c in '\n\t').strip()
+    return (True, sanitized, "") if sanitized else (False, "", "Empty after sanitization")
+
+
+def sanitize_filename(filename: str) -> Optional[str]:
+    """Sanitize a filename to prevent path traversal attacks."""
+    if not filename:
+        return None
+
+    # Remove path separators and parent directory references
+    filename = filename.replace('/', '').replace('\\', '').replace('..', '')
+
+    # Allow only safe characters
+    sanitized = re.sub(r'[^a-zA-Z0-9_\-.]', '_', filename)
+
+    # Remove leading dots and multiple consecutive dots
+    sanitized = sanitized.lstrip('.')
+    sanitized = re.sub(r'\.{2,}', '.', sanitized)
+
+    # Limit length
+    if len(sanitized) > 100:
+        sanitized = sanitized[:100]
+
+    return sanitized if sanitized and sanitized != '.' else None
 from sensors.voice_interface import VoiceInterface, VoiceCommand
 
 
@@ -107,9 +168,15 @@ class VoiceControlledHERMES:
         print("\nVoice control stopped.")
 
     def _process_command(self, command: VoiceCommand) -> None:
-        """Process a voice command."""
-        text = command.text.lower().strip()
-        print(f"\n>> Heard: '{command.text}'")
+        """Process a voice command with security validation."""
+        # Validate input first
+        is_valid, validated_text, error = validate_command(command.text)
+        if not is_valid:
+            print(f"\n⚠️ Invalid command: {error}")
+            return
+
+        text = validated_text.lower().strip()
+        print(f"\n>> Heard: '{validated_text}'")
 
         # Remove wake word if present
         for wake in self.voice.wake_words:
@@ -132,36 +199,48 @@ class VoiceControlledHERMES:
 
         # Otherwise, send to HERMES orchestrator
         print(f"\n[Sending to HERMES: '{text}']")
-        self._run_hermes_task(command.text)
+        self._run_hermes_task(validated_text)  # Use validated text, not raw input
 
     def _handle_create_file(self, text: str) -> None:
-        """Handle file creation commands."""
+        """Handle file creation commands with security validation."""
         print("\n[FILE CREATION]")
 
         # Try to extract filename
-        filename = None
+        raw_filename = None
         for pattern in ['called ', 'named ', 'file ']:
             if pattern in text:
                 parts = text.split(pattern)
                 if len(parts) > 1 and parts[1].strip():
-                    # Get the word after the pattern
                     words = parts[1].split()
                     if words:
-                        filename = words[0].strip()
-                        # Clean up common artifacts
-                        filename = filename.rstrip('.,!?')
+                        raw_filename = words[0].strip()
+                        raw_filename = raw_filename.rstrip('.,!?')
                         break
 
-        if not filename:
+        if not raw_filename:
             print("I heard you want to create a file, but I couldn't determine the filename.")
             print("Please say something like 'create a file called example.txt'")
+            return
+
+        # Security: Sanitize the filename
+        filename = sanitize_filename(raw_filename)
+        if not filename:
+            print(f"❌ Invalid filename '{raw_filename}'.")
+            print("Please use only letters, numbers, underscores, and hyphens.")
             return
 
         # Add .txt extension if no extension
         if '.' not in filename:
             filename += '.txt'
 
-        filepath = Path.cwd() / filename
+        # Security: Resolve and validate the path
+        project_dir = Path.cwd().resolve()
+        filepath = (project_dir / filename).resolve()
+
+        # Ensure the file would be created within the project directory
+        if not str(filepath).startswith(str(project_dir)):
+            print("❌ Security error: Cannot create files outside project directory.")
+            return
 
         # Create the file
         try:
@@ -171,11 +250,10 @@ class VoiceControlledHERMES:
             with open(filepath, 'w') as f:
                 f.write(content)
 
-            print(f"Created file: {filepath}")
-            print("File created successfully!")
+            print(f"✅ Created file: {filepath}")
 
-        except Exception as e:
-            print(f"Failed to create file: {e}")
+        except OSError as e:
+            print(f"❌ Failed to create file: {e}")
 
     def _handle_search(self, text: str) -> None:
         """Handle search commands."""

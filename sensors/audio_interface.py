@@ -68,6 +68,9 @@ class AudioInterface:
         self._callback: Optional[Callable] = None
         self._stop_event = threading.Event()
 
+        # Thread safety: Lock for protecting shared state
+        self._lock = threading.Lock()
+
         self._check_dependencies()
 
     def _check_dependencies(self) -> None:
@@ -77,8 +80,9 @@ class AudioInterface:
 
     @property
     def state(self) -> AudioState:
-        """Current state of the audio interface."""
-        return self._state
+        """Current state of the audio interface (thread-safe)."""
+        with self._lock:
+            return self._state
 
     def list_devices(self) -> List[dict]:
         """
@@ -143,19 +147,25 @@ class AudioInterface:
         if not SOUNDDEVICE_AVAILABLE:
             return False
 
-        if self._state != AudioState.IDLE:
-            return False
+        with self._lock:
+            if self._state != AudioState.IDLE:
+                return False
 
-        self._recording_buffer = []
-        self._stop_event.clear()
+            self._recording_buffer = []
+            self._stop_event.clear()
 
         def callback(indata, frames, time, status):
             if status:
                 print(f"Audio status: {status}")
-            self._recording_buffer.append(indata.copy())
 
-            if self._callback:
-                self._callback(indata)
+            # Thread-safe buffer access
+            with self._lock:
+                self._recording_buffer.append(indata.copy())
+                cb = self._callback
+
+            # Call callback outside lock to avoid deadlock
+            if cb:
+                cb(indata)
 
         try:
             self._stream = sd.InputStream(
@@ -167,7 +177,9 @@ class AudioInterface:
                 callback=callback
             )
             self._stream.start()
-            self._state = AudioState.RECORDING
+
+            with self._lock:
+                self._state = AudioState.RECORDING
 
             if duration:
                 # Schedule stop after duration
@@ -176,7 +188,7 @@ class AudioInterface:
 
             return True
 
-        except Exception as e:
+        except (sd.PortAudioError, OSError) as e:
             print(f"Failed to start recording: {e}")
             return False
 
@@ -187,20 +199,27 @@ class AudioInterface:
         Returns:
             Recorded audio as numpy array, or None if not recording
         """
-        if self._state != AudioState.RECORDING:
-            return None
+        with self._lock:
+            if self._state != AudioState.RECORDING:
+                return None
 
-        self._stop_event.set()
-
-        if self._stream:
-            self._stream.stop()
-            self._stream.close()
+            self._stop_event.set()
+            stream = self._stream
             self._stream = None
+            buffer_copy = list(self._recording_buffer)
+            self._recording_buffer = []
+            self._state = AudioState.IDLE
 
-        self._state = AudioState.IDLE
+        # Stop stream outside lock to avoid blocking
+        if stream:
+            try:
+                stream.stop()
+                stream.close()
+            except (sd.PortAudioError, OSError):
+                pass  # Stream may already be closed
 
-        if self._recording_buffer:
-            return np.concatenate(self._recording_buffer)
+        if buffer_copy:
+            return np.concatenate(buffer_copy)
         return None
 
     def record_blocking(self, duration: float) -> Optional[np.ndarray]:
@@ -245,8 +264,12 @@ class AudioInterface:
         if not SOUNDDEVICE_AVAILABLE:
             return False
 
-        try:
+        with self._lock:
+            if self._state != AudioState.IDLE:
+                return False
             self._state = AudioState.PLAYING
+
+        try:
             sd.play(
                 audio,
                 samplerate=self.config.sample_rate,
@@ -254,11 +277,15 @@ class AudioInterface:
             )
             if blocking:
                 sd.wait()
-            self._state = AudioState.IDLE
+
+            with self._lock:
+                self._state = AudioState.IDLE
             return True
-        except Exception as e:
+
+        except (sd.PortAudioError, OSError) as e:
             print(f"Playback failed: {e}")
-            self._state = AudioState.IDLE
+            with self._lock:
+                self._state = AudioState.IDLE
             return False
 
     def start_stream(
@@ -277,16 +304,24 @@ class AudioInterface:
         if not SOUNDDEVICE_AVAILABLE:
             return False
 
-        if self._state != AudioState.IDLE:
-            return False
+        with self._lock:
+            if self._state != AudioState.IDLE:
+                return False
 
-        self._callback = callback
-        self._stop_event.clear()
+            self._callback = callback
+            self._stop_event.clear()
 
         def stream_callback(indata, frames, time, status):
             if status:
                 print(f"Stream status: {status}")
-            callback(indata.copy())
+
+            # Get callback reference thread-safely
+            with self._lock:
+                cb = self._callback
+
+            # Call outside lock to avoid deadlock
+            if cb:
+                cb(indata.copy())
 
         try:
             self._stream = sd.InputStream(
@@ -298,21 +333,30 @@ class AudioInterface:
                 callback=stream_callback
             )
             self._stream.start()
-            self._state = AudioState.STREAMING
+
+            with self._lock:
+                self._state = AudioState.STREAMING
+
             return True
-        except Exception as e:
+        except (sd.PortAudioError, OSError) as e:
             print(f"Failed to start stream: {e}")
             return False
 
     def stop_stream(self) -> None:
         """Stop the audio stream."""
-        if self._stream:
-            self._stream.stop()
-            self._stream.close()
+        with self._lock:
+            stream = self._stream
             self._stream = None
+            self._callback = None
+            self._state = AudioState.IDLE
 
-        self._callback = None
-        self._state = AudioState.IDLE
+        # Stop stream outside lock
+        if stream:
+            try:
+                stream.stop()
+                stream.close()
+            except (sd.PortAudioError, OSError):
+                pass  # Stream may already be closed
 
     def analyze_audio(self, audio: np.ndarray) -> AudioAnalysis:
         """
@@ -372,7 +416,10 @@ class AudioInterface:
                 return float(positive_freqs[dominant_idx])
 
             return None
-        except Exception:
+        except (ValueError, FloatingPointError, IndexError):
+            # ValueError: empty array for FFT
+            # FloatingPointError: numerical issues
+            # IndexError: array indexing issues
             return None
 
     def get_volume_level(self, audio: np.ndarray) -> float:

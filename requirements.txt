@@ -29,3 +29,9 @@ requests>=2.28.0
 
 # Claude API for LLM responses
 anthropic>=0.76.0
+
+# Encryption for biometric data at rest
+cryptography>=41.0.0
+
+# Secure key storage (Windows Credential Manager, macOS Keychain)
+keyring>=24.0.0

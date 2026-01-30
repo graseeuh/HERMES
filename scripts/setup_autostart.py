@@ -11,12 +11,38 @@ Requires administrator privileges to create the scheduled task.
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 
 TASK_NAME = "HERMES_Startup_Greeter"
+
+# Security: Pattern to detect potentially dangerous characters in paths
+UNSAFE_PATH_PATTERN = re.compile(r'[;&|`$<>]')
+
+
+def validate_path(path: str, description: str) -> bool:
+    """
+    Validate a path for security.
+
+    Args:
+        path: The path to validate
+        description: Description for error messages
+
+    Returns:
+        True if valid, raises ValueError if invalid
+    """
+    if UNSAFE_PATH_PATTERN.search(path):
+        raise ValueError(f"Invalid {description}: contains unsafe characters")
+
+    # Ensure path is absolute and normalized
+    resolved = Path(path).resolve()
+    if not resolved.exists():
+        raise ValueError(f"Invalid {description}: path does not exist")
+
+    return True
 
 
 def get_python_path() -> str:
@@ -69,6 +95,15 @@ def create_task(delay_seconds: int = 30) -> bool:
     script_path = get_script_path()
     working_dir = get_working_directory()
 
+    # Security: Validate all paths before using in subprocess
+    try:
+        validate_path(python_path, "Python path")
+        validate_path(script_path, "script path")
+        validate_path(working_dir, "working directory")
+    except ValueError as e:
+        print(f"Security error: {e}")
+        return False
+
     print(f"Python: {python_path}")
     print(f"Script: {script_path}")
     print(f"Working Directory: {working_dir}")
@@ -94,7 +129,7 @@ def create_task(delay_seconds: int = 30) -> bool:
             cmd,
             capture_output=True,
             text=True,
-            shell=True
+            shell=False  # Secure: prevents command injection
         )
 
         if result.returncode == 0:
@@ -113,8 +148,8 @@ def create_task(delay_seconds: int = 30) -> bool:
                 print("\nTry running this script as Administrator.")
             return False
 
-    except Exception as e:
-        print(f"Error: {e}")
+    except (OSError, subprocess.SubprocessError) as e:
+        print(f"Error running schtasks: {e}")
         return False
 
 
@@ -134,7 +169,7 @@ def remove_task() -> bool:
             cmd,
             capture_output=True,
             text=True,
-            shell=True
+            shell=False  # Secure: prevents command injection
         )
 
         if result.returncode == 0:
@@ -147,8 +182,8 @@ def remove_task() -> bool:
                 print(f"Error removing task: {result.stderr}")
             return False
 
-    except Exception as e:
-        print(f"Error: {e}")
+    except (OSError, subprocess.SubprocessError) as e:
+        print(f"Error running schtasks: {e}")
         return False
 
 
@@ -166,10 +201,11 @@ def check_task() -> bool:
             cmd,
             capture_output=True,
             text=True,
-            shell=True
+            shell=False  # Secure: prevents command injection
         )
         return result.returncode == 0
-    except Exception:
+    except (OSError, subprocess.SubprocessError) as e:
+        print(f"Error checking task: {e}")
         return False
 
 
