@@ -13,6 +13,13 @@ from .agent_registry import AgentRegistry, AgentRecord, AgentCapability, AgentSt
 from .agent_matcher import AgentMatcher, MatchResult
 from .prompt_generator import PromptGenerator, GeneratedPrompt
 
+# Import Claude Code executor for real task execution
+try:
+    from integration.claude_code_executor import ClaudeCodeExecutor
+    EXECUTOR_AVAILABLE = True
+except ImportError:
+    EXECUTOR_AVAILABLE = False
+
 
 class ExecutionStatus(Enum):
     PENDING = "pending"
@@ -67,6 +74,18 @@ class Orchestrator:
         self.matcher = AgentMatcher(self.registry)
         self.prompt_generator = PromptGenerator(knowledge_base_path)
         self.claude_bridge = claude_bridge
+
+        # Claude Code executor for real task execution
+        self.executor = None
+        if EXECUTOR_AVAILABLE:
+            self.executor = ClaudeCodeExecutor(working_directory=knowledge_base_path)
+            if self.executor.is_available():
+                print("Claude Code executor: ENABLED (real execution)")
+            else:
+                print("Claude Code executor: NOT AVAILABLE (claude CLI not found)")
+                self.executor = None
+        else:
+            print("Claude Code executor: NOT INSTALLED")
 
         # Execution callbacks (for integration)
         self._on_agent_spawn: Optional[Callable] = None
@@ -299,8 +318,22 @@ class Orchestrator:
         if self._on_agent_spawn:
             self._on_agent_spawn(agent, subtask)
 
-        # Execute via Claude bridge if available
-        if self.claude_bridge:
+        # Execute via Claude Code executor (real execution) if available
+        if self.executor:
+            exec_result = self.executor.execute(
+                task=prompt.rendered_prompt,
+                timeout=120,
+                max_turns=5
+            )
+            result = {
+                'agent_id': agent.agent_id,
+                'task_id': subtask.id,
+                'status': 'completed' if exec_result.success else 'failed',
+                'output': exec_result.output,
+                'error': exec_result.error
+            }
+        elif self.claude_bridge:
+            # Fallback to bridge (for testing/simulation)
             result = self.claude_bridge.spawn_agent(
                 prompt=prompt.rendered_prompt,
                 subagent_type=subagent_type,
@@ -350,9 +383,24 @@ class Orchestrator:
         if self._on_agent_spawn:
             self._on_agent_spawn(agent, subtask)
 
-        # Execute via Claude bridge if available
-        if self.claude_bridge:
-            # For buffing, we might use the resume feature
+        # Execute via Claude Code executor (real execution) if available
+        if self.executor:
+            # For buffing, include context about the continuation
+            continuation_prompt = f"Continuing previous work.\n\n{prompt.rendered_prompt}"
+            exec_result = self.executor.execute(
+                task=continuation_prompt,
+                timeout=120,
+                max_turns=5
+            )
+            result = {
+                'agent_id': agent_id,
+                'task_id': subtask.id,
+                'status': 'completed' if exec_result.success else 'failed',
+                'output': exec_result.output,
+                'error': exec_result.error
+            }
+        elif self.claude_bridge:
+            # Fallback to bridge (for testing/simulation)
             result = self.claude_bridge.add_task_to_agent(
                 agent_id=agent_id,
                 prompt=prompt.rendered_prompt,
