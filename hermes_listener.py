@@ -177,10 +177,65 @@ class HermesListener:
             print(f"[Would say] {text}")
 
     def _generate_response(self, user_input: str, task_result: str = None) -> Optional[str]:
-        """Generate contextual response using Claude API."""
+        """Generate contextual response using Claude API or format result directly."""
+        # Try Claude API first for natural responses
         if self.llm and self.enable_llm:
-            return self.llm.generate_contextual_response(user_input, task_result)
+            response = self.llm.generate_contextual_response(user_input, task_result)
+            if response:
+                return response
+
+        # Fallback: Format the result directly for voice
+        if task_result:
+            return self._format_result_for_voice(task_result)
+
         return None
+
+    def _format_result_for_voice(self, result: str) -> str:
+        """
+        Format a task result for voice output.
+
+        Args:
+            result: Raw result text from executor
+
+        Returns:
+            Voice-friendly summary (max ~300 chars)
+        """
+        if not result:
+            return "Task completed."
+
+        # Clean up the result
+        result = result.strip()
+
+        # Remove markdown formatting that doesn't work in speech
+        result = re.sub(r'\*\*([^*]+)\*\*', r'\1', result)  # Bold
+        result = re.sub(r'\*([^*]+)\*', r'\1', result)  # Italic
+        result = re.sub(r'`([^`]+)`', r'\1', result)  # Code
+        result = re.sub(r'#{1,6}\s*', '', result)  # Headers
+        result = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', result)  # Links
+
+        # Remove code blocks
+        result = re.sub(r'```[\s\S]*?```', 'code block omitted', result)
+
+        # Collapse multiple newlines
+        result = re.sub(r'\n{2,}', '. ', result)
+        result = re.sub(r'\n', ' ', result)
+
+        # Collapse multiple spaces
+        result = re.sub(r'\s{2,}', ' ', result)
+
+        # Truncate for voice if too long
+        if len(result) > 400:
+            # Try to find a natural break point
+            sentences = result.split('.')
+            summary = ""
+            for sentence in sentences:
+                if len(summary) + len(sentence) < 350:
+                    summary += sentence.strip() + ". "
+                else:
+                    break
+            result = summary.strip() if summary else result[:350] + "..."
+
+        return result if result else "Task completed."
 
     def _print_banner(self) -> None:
         """Print startup banner."""
@@ -281,11 +336,29 @@ class HermesListener:
 
         # Generate and speak contextual response
         if result:
-            response = self._generate_response(text, result.summary)
+            # Try to get the actual output from results
+            spoken_result = None
+
+            # Check if we have actual output from the executor
+            if result.results:
+                # Get the output from the first completed subtask
+                for task_id, task_result in result.results.items():
+                    if isinstance(task_result, dict) and 'output' in task_result:
+                        spoken_result = task_result['output']
+                        break
+                    elif isinstance(task_result, str):
+                        spoken_result = task_result
+                        break
+
+            # Fall back to summary if no specific output
+            if not spoken_result:
+                spoken_result = result.summary
+
+            response = self._generate_response(text, spoken_result)
             if response:
+                print(f"\n🔊 Speaking: {response[:100]}...")
                 self._speak(response)
             else:
-                # Fallback simple acknowledgment
                 self._speak("Task completed.")
 
         return False
