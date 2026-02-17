@@ -32,6 +32,9 @@ data/
 # MCP config (contains local paths)
 .mcp.json
 
+# Security config (contains PII blocklist)
+.hermes_security.json
+
 # Business data
 viccia_ai/
 

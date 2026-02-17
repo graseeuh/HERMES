@@ -80,6 +80,13 @@ class SecurityAgent:
     Scans code for vulnerabilities, edge cases, and efficiency issues.
     """
 
+    # PII patterns - names, emails, and personal identifiers that must never be committed
+    # Load from config file if available, otherwise use defaults
+    PII_PATTERNS = {
+        'real_names': [],       # populated at runtime from .hermes_security.json
+        'email_addresses': [],  # populated at runtime from .hermes_security.json
+    }
+
     # Dangerous patterns to check for
     SECURITY_PATTERNS = {
         'command_injection': {
@@ -238,6 +245,107 @@ class SecurityAgent:
         self.project_path = Path(project_path)
         self.issues: List[SecurityIssue] = []
         self.file_audits: List[FileAudit] = []
+        self._load_pii_config()
+
+    def _load_pii_config(self):
+        """Load PII patterns from .hermes_security.json config file."""
+        import json
+        config_path = self.project_path / '.hermes_security.json'
+        if config_path.exists():
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            self.PII_PATTERNS = {
+                'real_names': config.get('blocked_names', []),
+                'email_addresses': config.get('blocked_emails', []),
+                'blocked_strings': config.get('blocked_strings', []),
+            }
+
+    def check_staged_content(self, content: str, filename: str = "<staged>") -> List[SecurityIssue]:
+        """
+        Scan a string of content for PII and secrets. Used by the pre-commit hook.
+
+        Returns:
+            List of SecurityIssue objects found in the content.
+        """
+        issues = []
+        lines = content.split('\n')
+
+        # Check PII patterns
+        for name in self.PII_PATTERNS.get('real_names', []):
+            if not name:
+                continue
+            pattern = re.compile(re.escape(name), re.IGNORECASE)
+            for i, line in enumerate(lines, 1):
+                if pattern.search(line):
+                    issues.append(SecurityIssue(
+                        category=IssueCategory.SECURITY,
+                        severity=SeverityLevel.CRITICAL,
+                        file_path=filename,
+                        line_number=i,
+                        title="PII: Blocked name detected",
+                        description=f"Found blocked name in content",
+                        recommendation="Remove personal name before committing",
+                        code_snippet=line.strip()[:80]
+                    ))
+
+        for email in self.PII_PATTERNS.get('email_addresses', []):
+            if not email:
+                continue
+            pattern = re.compile(re.escape(email), re.IGNORECASE)
+            for i, line in enumerate(lines, 1):
+                if pattern.search(line):
+                    issues.append(SecurityIssue(
+                        category=IssueCategory.SECURITY,
+                        severity=SeverityLevel.CRITICAL,
+                        file_path=filename,
+                        line_number=i,
+                        title="PII: Blocked email detected",
+                        description=f"Found blocked email address in content",
+                        recommendation="Remove personal email before committing",
+                        code_snippet=line.strip()[:80]
+                    ))
+
+        for blocked in self.PII_PATTERNS.get('blocked_strings', []):
+            if not blocked:
+                continue
+            pattern = re.compile(re.escape(blocked), re.IGNORECASE)
+            for i, line in enumerate(lines, 1):
+                if pattern.search(line):
+                    issues.append(SecurityIssue(
+                        category=IssueCategory.SECURITY,
+                        severity=SeverityLevel.CRITICAL,
+                        file_path=filename,
+                        line_number=i,
+                        title="PII: Blocked string detected",
+                        description=f"Found blocked content in file",
+                        recommendation="Remove blocked content before committing",
+                        code_snippet=line.strip()[:80]
+                    ))
+
+        # Also check for common secret patterns in the content
+        secret_patterns = [
+            (r'(?:api[_-]?key|apikey)\s*[:=]\s*["\'][A-Za-z0-9]{16,}["\']', "API key"),
+            (r'(?:secret|token|password|passwd|pwd)\s*[:=]\s*["\'][^"\']{8,}["\']', "Hardcoded secret"),
+            (r'sk-[A-Za-z0-9]{20,}', "OpenAI/Stripe secret key"),
+            (r'ghp_[A-Za-z0-9]{36,}', "GitHub personal access token"),
+            (r'-----BEGIN (?:RSA |EC )?PRIVATE KEY-----', "Private key"),
+        ]
+
+        for pat, label in secret_patterns:
+            for i, line in enumerate(lines, 1):
+                if re.search(pat, line, re.IGNORECASE):
+                    issues.append(SecurityIssue(
+                        category=IssueCategory.SECURITY,
+                        severity=SeverityLevel.CRITICAL,
+                        file_path=filename,
+                        line_number=i,
+                        title=f"Secret: {label}",
+                        description=f"Potential {label} found in staged content",
+                        recommendation="Remove secrets and use environment variables",
+                        code_snippet=line.strip()[:80]
+                    ))
+
+        return issues
 
     def run_full_audit(self, exclude_dirs: List[str] = None) -> AuditReport:
         """
