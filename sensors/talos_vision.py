@@ -25,7 +25,7 @@ cap = cv2.VideoCapture(0)
 
 # 4. Launch the Sentinel
 with FaceDetector.create_from_options(options) as detector:
-    print("TALOS Sentinel: Online and Scanning for CEO Christian Gracia...")
+    print("TALOS Sentinel: Online and Scanning...")
     
     while cap.isOpened():
         success, frame = cap.read()

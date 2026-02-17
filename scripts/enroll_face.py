@@ -3,9 +3,9 @@ HERMES Face Enrollment Utility
 Captures face images and enrolls them for recognition.
 
 Usage:
-    python scripts/enroll_face.py --name "Gracia"
-    python scripts/enroll_face.py --name "Gracia" --samples 5
-    python scripts/enroll_face.py --name "Gracia" --camera 0
+    python scripts/enroll_face.py --name "YourName"
+    python scripts/enroll_face.py --name "YourName" --samples 5
+    python scripts/enroll_face.py --name "YourName" --camera 0
 """
 
 import argparse

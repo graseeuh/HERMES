@@ -55,7 +55,7 @@ with FaceDetector.create_from_options(options) as detector:
         if detection_result.detections:
             # If a face is found and we are off cooldown
             if (current_time - last_greeting_time) > cooldown:
-                speak("Identity confirmed. Hello Christian. HERMES systems are standing by.")
+                speak("Identity confirmed. Welcome back. HERMES systems are standing by.")
                 last_greeting_time = current_time
 
         cv2.imshow('TALOS Feed', frame)

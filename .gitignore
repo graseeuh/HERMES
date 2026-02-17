@@ -28,3 +28,20 @@ nul
 
 # Personal data
 data/
+
+# MCP config (contains local paths)
+.mcp.json
+
+# Business data
+viccia_ai/
+
+# Separate projects with own .git
+ARGUSCLONE/
+
+# macOS zip junk
+__MACOSX/
+
+# Project-specific data and binaries
+projects/outreach/data/
+projects/touchdesigner/release/*.toe
+projects/touchdesigner/release/toxes/*.tox
