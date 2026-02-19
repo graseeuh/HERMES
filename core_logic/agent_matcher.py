@@ -277,8 +277,11 @@ class AgentMatcher:
             TaskType.RESEARCH: "Explore",
             TaskType.VISION: "general-purpose",
             TaskType.AUDIO: "general-purpose",
+            TaskType.KICAD: "general-purpose",
+            TaskType.TOUCHDESIGNER: "general-purpose",
             TaskType.PLAN: "Plan",
-            TaskType.CUSTOM: "general-purpose"
+            TaskType.CUSTOM: "general-purpose",
+            TaskType.SECURITY: "security"
         }
         return type_mapping.get(subtask.task_type, "general-purpose")
 

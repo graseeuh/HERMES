@@ -14,8 +14,11 @@ class TaskType(Enum):
     RESEARCH = "research"
     VISION = "vision"
     AUDIO = "audio"
+    KICAD = "kicad"
+    TOUCHDESIGNER = "touchdesigner"
     PLAN = "plan"
     CUSTOM = "custom"
+    SECURITY = "security"
 
 
 @dataclass
@@ -92,9 +95,31 @@ class TaskParser:
             'audio', 'sound', 'microphone', 'listen', 'voice', 'speech',
             'record', 'hear', 'sounddevice', 'frequency', 'volume'
         ],
+        TaskType.KICAD: [
+            'kicad', 'pcb', 'schematic', 'circuit', 'footprint', 'symbol',
+            'gerber', 'trace', 'routing', 'copper', 'solder', 'component',
+            'capacitor', 'resistor', 'inductor', 'microcontroller', 'connector',
+            'eeschema', 'pcbnew', 'board layout', 'netlist', 'bom',
+            'drc', 'erc', 'drill', 'via', 'pad', 'silkscreen',
+            'fabrication', 'electronics', 'eda', 'solder mask'
+        ],
+        TaskType.TOUCHDESIGNER: [
+            'touchdesigner', 'touch designer', 'derivative', 'chop', 'top',
+            'sop', 'dat', 'comp', 'tox', 'glsl', 'shader',
+            'projection mapping', 'generative', 'audio reactive',
+            'interactive installation', 'ndi', 'dmx', 'art-net', 'spout',
+            'syphon', 'pixel mapping', 'perform mode', 'realtime visuals',
+            'motion graphics', 'led wall', 'texture operator',
+            'channel operator', 'surface operator'
+        ],
         TaskType.PLAN: [
             'plan', 'design', 'architect', 'strategy', 'approach',
             'outline', 'structure', 'organize'
+        ],
+        TaskType.SECURITY: [
+            'security', 'audit', 'vulnerability', 'secure', 'penetration',
+            'owasp', 'sanitize', 'validate input', 'injection', 'xss',
+            'csrf', 'authentication', 'authorization', 'encrypt', 'pentest'
         ]
     }
 
@@ -198,7 +223,11 @@ class TaskParser:
             context['quoted_terms'] = quoted
 
         # Detect technologies mentioned
-        tech_keywords = ['mediapipe', 'opencv', 'numpy', 'python', 'sounddevice']
+        tech_keywords = [
+            'mediapipe', 'opencv', 'numpy', 'python', 'sounddevice',
+            'kicad', 'pcbnew', 'eeschema', 'gerber', 'spice',
+            'touchdesigner', 'glsl', 'osc', 'midi', 'ndi', 'dmx', 'art-net'
+        ]
         mentioned_tech = [t for t in tech_keywords if t in text.lower()]
         if mentioned_tech:
             context['technologies'] = mentioned_tech
@@ -306,6 +335,12 @@ class TaskParser:
                     if prev.task_type == TaskType.RESEARCH:
                         if prev.id not in subtask.dependencies:
                             subtask.dependencies.append(prev.id)
+
+            # Security tasks always run last — depend on every preceding subtask
+            if subtask.task_type == TaskType.SECURITY:
+                for prev in subtasks[:i]:
+                    if prev.id not in subtask.dependencies:
+                        subtask.dependencies.append(prev.id)
 
     def get_task_summary(self, parsed: ParsedTask) -> str:
         """Generate a human-readable summary of parsed tasks."""

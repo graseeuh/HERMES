@@ -6,11 +6,13 @@ from .agent_registry import AgentRegistry
 from .agent_matcher import AgentMatcher
 from .prompt_generator import PromptGenerator
 from .orchestrator import Orchestrator
+from .security_agent import SecurityAgent
 
 __all__ = [
     'TaskParser',
     'AgentRegistry',
     'AgentMatcher',
     'PromptGenerator',
-    'Orchestrator'
+    'Orchestrator',
+    'SecurityAgent',
 ]

@@ -3,6 +3,7 @@ HERMES Orchestrator
 The main coordination engine that receives tasks, manages agents, and aggregates results.
 """
 
+import logging
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Callable
 from datetime import datetime
@@ -19,6 +20,13 @@ try:
     EXECUTOR_AVAILABLE = True
 except ImportError:
     EXECUTOR_AVAILABLE = False
+
+# Import TouchDesigner project generator
+try:
+    from projects.touchdesigner.td_project_generator import TDProjectGenerator
+    TD_GENERATOR_AVAILABLE = True
+except ImportError:
+    TD_GENERATOR_AVAILABLE = False
 
 
 class ExecutionStatus(Enum):
@@ -75,17 +83,26 @@ class Orchestrator:
         self.prompt_generator = PromptGenerator(knowledge_base_path)
         self.claude_bridge = claude_bridge
 
+        # TouchDesigner project generator
+        self.td_generator = None
+        if TD_GENERATOR_AVAILABLE:
+            try:
+                self.td_generator = TDProjectGenerator(knowledge_base_path)
+            except Exception:
+                pass
+
         # Claude Code executor for real task execution
+        self.logger = logging.getLogger(__name__)
         self.executor = None
         if EXECUTOR_AVAILABLE:
             self.executor = ClaudeCodeExecutor(working_directory=knowledge_base_path)
             if self.executor.is_available():
-                print("Claude Code executor: ENABLED (real execution)")
+                self.logger.info("Claude Code executor: ENABLED (real execution)")
             else:
-                print("Claude Code executor: NOT AVAILABLE (claude CLI not found)")
+                self.logger.warning("Claude Code executor: NOT AVAILABLE (claude CLI not found)")
                 self.executor = None
         else:
-            print("Claude Code executor: NOT INSTALLED")
+            self.logger.info("Claude Code executor: NOT INSTALLED")
 
         # Execution callbacks (for integration)
         self._on_agent_spawn: Optional[Callable] = None
@@ -196,6 +213,16 @@ class Orchestrator:
                     if plan.buff_decisions.get(subtask_id):
                         agents_buffed.append(agent_id)
 
+        # Run mandatory security gate — always last, never blocking creation
+        self.logger.info("Running final security gate...")
+        security_result = self._run_security_gate(
+            results, errors, plan.parsed_task.original_input
+        )
+        if 'error' in security_result:
+            errors['security_gate'] = security_result['error']
+        else:
+            results['security_gate'] = security_result.get('result')
+
         # Determine overall status
         if not errors:
             status = ExecutionStatus.COMPLETED
@@ -276,6 +303,20 @@ class Orchestrator:
                     enhanced_context,
                     plan
                 )
+
+            # Post-process: generate TD project if applicable
+            if subtask.task_type == TaskType.TOUCHDESIGNER and self.td_generator:
+                try:
+                    td_output = self.td_generator.generate(subtask.description)
+                    result['td_project'] = {
+                        'mode': td_output.mode,
+                        'output_dir': td_output.output_dir,
+                        'files_created': td_output.files_created,
+                        'project_name': td_output.project_name,
+                        'build_script_length': len(td_output.build_script),
+                    }
+                except Exception:
+                    pass  # TD generation is best-effort
 
             return {'result': result}
 
@@ -430,10 +471,65 @@ class Orchestrator:
             TaskType.RESEARCH: ['exploration', 'analysis', 'documentation'],
             TaskType.VISION: ['mediapipe', 'opencv', 'image processing'],
             TaskType.AUDIO: ['sounddevice', 'audio processing'],
+            TaskType.KICAD: ['kicad', 'pcb', 'schematic', 'electronics'],
+            TaskType.TOUCHDESIGNER: ['touchdesigner', 'glsl', 'generative', 'realtime visuals'],
             TaskType.PLAN: ['architecture', 'design'],
-            TaskType.CUSTOM: []
+            TaskType.CUSTOM: [],
+            TaskType.SECURITY: ['security audit', 'vulnerability scanning', 'owasp', 'code review']
         }
         return specializations.get(task_type, [])
+
+    def _run_security_gate(
+        self,
+        prior_results: Dict[str, Any],
+        prior_errors: Dict[str, str],
+        original_input: str
+    ) -> Dict[str, Any]:
+        """
+        Mandatory security review that runs after all creation tasks finish.
+        No bottlenecks during creation — security audits the final outputs once.
+        """
+        # Summarise all outputs for the security agent
+        output_parts = [
+            f"[{task_id}]: {str(result)[:500]}"
+            for task_id, result in prior_results.items()
+            if result
+        ]
+        output_summary = '\n'.join(output_parts) if output_parts else "No output produced."
+
+        security_subtask = SubTask(
+            id="security_gate",
+            description=(
+                f"Final security audit of all outputs for: {original_input[:100]}. "
+                f"Review results for OWASP Top 10 vulnerabilities, data leaks, "
+                f"injection risks, and hidden issues. Outputs to audit:\n{output_summary[:1500]}"
+            ),
+            task_type=TaskType.SECURITY,
+            dependencies=[],
+            context={
+                'output_summary': output_summary[:2000],
+                'tasks_audited': list(prior_results.keys()),
+                'errors_present': list(prior_errors.keys())
+            }
+        )
+
+        prompt = self.prompt_generator.generate_prompt(
+            security_subtask,
+            additional_context={'output_summary': output_summary[:2000]}
+        )
+
+        gate_plan = ExecutionPlan(
+            parsed_task=ParsedTask(
+                original_input=original_input,
+                subtasks=[security_subtask]
+            ),
+            execution_groups=[[security_subtask]],
+            agent_assignments={security_subtask.id: None},
+            buff_decisions={security_subtask.id: False},
+            prompts={security_subtask.id: prompt}
+        )
+
+        return self._execute_subtask(security_subtask, gate_plan, prior_results)
 
     def _generate_summary(
         self,
