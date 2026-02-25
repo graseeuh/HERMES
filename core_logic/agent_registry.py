@@ -4,6 +4,7 @@ Tracks active agents, their capabilities, states, and results.
 Enables agent reuse through capability profiles.
 """
 
+import threading
 import uuid
 from datetime import datetime
 from dataclasses import dataclass, field
@@ -77,6 +78,7 @@ class AgentRegistry:
     def __init__(self):
         self._agents: Dict[str, AgentRecord] = {}
         self._task_to_agent: Dict[str, str] = {}  # task_id -> agent_id mapping
+        self._lock = threading.Lock()
 
     def register_agent(
         self,
@@ -99,20 +101,21 @@ class AgentRegistry:
         Returns:
             The created AgentRecord
         """
-        agent_id = f"agent_{uuid.uuid4().hex[:8]}"
+        with self._lock:
+            agent_id = f"agent_{uuid.uuid4().hex[:8]}"
 
-        record = AgentRecord(
-            agent_id=agent_id,
-            name=name,
-            capability=capability,
-            status=AgentStatus.IDLE,
-            prompt=prompt,
-            subagent_type=subagent_type,
-            context=context or {}
-        )
+            record = AgentRecord(
+                agent_id=agent_id,
+                name=name,
+                capability=capability,
+                status=AgentStatus.IDLE,
+                prompt=prompt,
+                subagent_type=subagent_type,
+                context=context or {}
+            )
 
-        self._agents[agent_id] = record
-        return record
+            self._agents[agent_id] = record
+            return record
 
     def get_agent(self, agent_id: str) -> Optional[AgentRecord]:
         """Get an agent by ID."""
@@ -147,14 +150,15 @@ class AgentRegistry:
         Returns:
             True if assignment successful
         """
-        agent = self._agents.get(agent_id)
-        if not agent or not agent.is_available:
-            return False
+        with self._lock:
+            agent = self._agents.get(agent_id)
+            if not agent or not agent.is_available:
+                return False
 
-        agent.current_tasks.append(task_id)
-        agent.status = AgentStatus.RUNNING
-        self._task_to_agent[task_id] = agent_id
-        return True
+            agent.current_tasks.append(task_id)
+            agent.status = AgentStatus.RUNNING
+            self._task_to_agent[task_id] = agent_id
+            return True
 
     def queue_task(
         self,
@@ -177,29 +181,31 @@ class AgentRegistry:
         Returns:
             True if queuing successful
         """
-        agent = self._agents.get(agent_id)
-        if not agent or not agent.is_available:
-            return False
+        with self._lock:
+            agent = self._agents.get(agent_id)
+            if not agent or not agent.is_available:
+                return False
 
-        queued = QueuedTask(
-            task_id=task_id,
-            description=description,
-            task_type=task_type,
-            context=context
-        )
+            queued = QueuedTask(
+                task_id=task_id,
+                description=description,
+                task_type=task_type,
+                context=context
+            )
 
-        agent.task_queue.append(queued)
-        agent.status = AgentStatus.BUFFERED
-        self._task_to_agent[task_id] = agent_id
-        return True
+            agent.task_queue.append(queued)
+            agent.status = AgentStatus.BUFFERED
+            self._task_to_agent[task_id] = agent_id
+            return True
 
     def get_next_queued_task(self, agent_id: str) -> Optional[QueuedTask]:
         """Get and remove the next queued task for an agent."""
-        agent = self._agents.get(agent_id)
-        if not agent or not agent.task_queue:
-            return None
+        with self._lock:
+            agent = self._agents.get(agent_id)
+            if not agent or not agent.task_queue:
+                return None
 
-        return agent.task_queue.pop(0)
+            return agent.task_queue.pop(0)
 
     def complete_task(
         self,
@@ -220,36 +226,38 @@ class AgentRegistry:
         Returns:
             True if completion recorded successfully
         """
-        agent = self._agents.get(agent_id)
-        if not agent:
-            return False
+        with self._lock:
+            agent = self._agents.get(agent_id)
+            if not agent:
+                return False
 
-        if task_id in agent.current_tasks:
-            agent.current_tasks.remove(task_id)
+            if task_id in agent.current_tasks:
+                agent.current_tasks.remove(task_id)
 
-        if error:
-            agent.results[task_id] = {'error': error}
-        else:
-            agent.results[task_id] = {'result': result}
+            if error:
+                agent.results[task_id] = {'error': error}
+            else:
+                agent.results[task_id] = {'result': result}
 
-        # Update agent status
-        if agent.task_queue:
-            agent.status = AgentStatus.BUFFERED
-        elif agent.current_tasks:
-            agent.status = AgentStatus.RUNNING
-        else:
-            agent.status = AgentStatus.IDLE
+            # Update agent status
+            if agent.task_queue:
+                agent.status = AgentStatus.BUFFERED
+            elif agent.current_tasks:
+                agent.status = AgentStatus.RUNNING
+            else:
+                agent.status = AgentStatus.IDLE
 
-        return True
+            return True
 
     def update_agent_context(self, agent_id: str, context: Dict[str, Any]) -> bool:
         """Update an agent's context with new information."""
-        agent = self._agents.get(agent_id)
-        if not agent:
-            return False
+        with self._lock:
+            agent = self._agents.get(agent_id)
+            if not agent:
+                return False
 
-        agent.context.update(context)
-        return True
+            agent.context.update(context)
+            return True
 
     def get_agent_for_task(self, task_id: str) -> Optional[AgentRecord]:
         """Get the agent assigned to a specific task."""
@@ -272,19 +280,20 @@ class AgentRegistry:
 
     def deregister_agent(self, agent_id: str) -> bool:
         """Remove an agent from the registry."""
-        if agent_id not in self._agents:
-            return False
+        with self._lock:
+            if agent_id not in self._agents:
+                return False
 
-        agent = self._agents[agent_id]
+            agent = self._agents[agent_id]
 
-        # Clean up task mappings
-        for task_id in agent.current_tasks:
-            self._task_to_agent.pop(task_id, None)
-        for queued in agent.task_queue:
-            self._task_to_agent.pop(queued.task_id, None)
+            # Clean up task mappings
+            for task_id in agent.current_tasks:
+                self._task_to_agent.pop(task_id, None)
+            for queued in agent.task_queue:
+                self._task_to_agent.pop(queued.task_id, None)
 
-        del self._agents[agent_id]
-        return True
+            del self._agents[agent_id]
+            return True
 
     def get_registry_stats(self) -> Dict[str, Any]:
         """Get statistics about the registry."""
@@ -305,5 +314,6 @@ class AgentRegistry:
 
     def clear(self) -> None:
         """Clear all agents from the registry."""
-        self._agents.clear()
-        self._task_to_agent.clear()
+        with self._lock:
+            self._agents.clear()
+            self._task_to_agent.clear()

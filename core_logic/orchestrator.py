@@ -4,6 +4,8 @@ The main coordination engine that receives tasks, manages agents, and aggregates
 """
 
 import logging
+import concurrent.futures
+import threading
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Callable
 from datetime import datetime
@@ -108,6 +110,9 @@ class Orchestrator:
         self._on_agent_spawn: Optional[Callable] = None
         self._on_agent_complete: Optional[Callable] = None
         self._on_task_complete: Optional[Callable] = None
+
+        # Parallel execution config
+        self._max_parallel_agents: int = 4
 
     def set_claude_bridge(self, bridge: Any) -> None:
         """Set the Claude bridge after initialization."""
@@ -258,14 +263,35 @@ class Orchestrator:
         plan: ExecutionPlan,
         previous_results: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute a group of independent subtasks (can run in parallel)."""
-        group_results = {}
+        """Execute a group of independent subtasks in parallel using threads.
 
-        # In a real implementation, these would run in parallel
-        # For now, execute sequentially but structure supports parallel execution
-        for subtask in group:
-            result = self._execute_subtask(subtask, plan, previous_results)
-            group_results[subtask.id] = result
+        Tasks within a group have no dependencies on each other and are safe
+        to run concurrently. The AgentRegistry is protected by its own lock.
+        previous_results is read-only during group execution.
+        """
+        if len(group) == 1:
+            subtask = group[0]
+            return {subtask.id: self._execute_subtask(subtask, plan, previous_results)}
+
+        group_results = {}
+        max_workers = min(len(group), self._max_parallel_agents)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_subtask = {
+                executor.submit(self._execute_subtask, subtask, plan, previous_results): subtask
+                for subtask in group
+            }
+            for future in concurrent.futures.as_completed(future_to_subtask):
+                subtask = future_to_subtask[future]
+                try:
+                    group_results[subtask.id] = future.result()
+                except Exception as exc:
+                    self.logger.error(
+                        "Parallel subtask %s raised unexpectedly: %s",
+                        subtask.id,
+                        exc,
+                    )
+                    group_results[subtask.id] = {'error': str(exc)}
 
         return group_results
 
