@@ -40,3 +40,6 @@ youtube-transcript-api==0.6.2
 # MCP server (Claude Code integration)
 mcp[cli]>=1.2.0
 
+# Testing
+pytest>=9.0.2
+
