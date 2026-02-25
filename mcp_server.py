@@ -27,6 +27,7 @@ logger = logging.getLogger("hermes.mcp")
 _orchestrator = None
 _inspector = None
 _approval_gate = None
+_github_scanner = None
 
 
 def get_orchestrator():
@@ -63,6 +64,18 @@ def get_approval_gate():
         _approval_gate = ApprovalGate(base_path=base_path)
         logger.info("ApprovalGate initialized (base=%s)", base_path)
     return _approval_gate
+
+
+def get_github_scanner():
+    """Lazy-initialize and return the GitHubScanner singleton."""
+    global _github_scanner
+    if _github_scanner is None:
+        from security import GitHubScanner
+
+        base_path = str(Path(__file__).parent)
+        _github_scanner = GitHubScanner(base_path=base_path)
+        logger.info("GitHubScanner initialized (base=%s)", base_path)
+    return _github_scanner
 
 
 # ---------------------------------------------------------------------------
@@ -293,6 +306,74 @@ def hermes_list_pending() -> str:
         )
     except Exception as exc:
         logger.exception("hermes_list_pending failed")
+        return json.dumps({"status": "error", "error": str(exc)})
+
+
+@mcp.tool()
+def hermes_fetch_github(repo: str, path: str, ref: str = "main") -> str:
+    """Fetch a file from GitHub with mandatory 4-layer malicious content scanning.
+
+    Scans for: obfuscated code, eval/exec injections, encoded payloads, reverse
+    shells, crypto miners, supply-chain hooks, typosquatted dependencies,
+    hardcoded credentials, null bytes, long lines, and high-entropy strings.
+
+    CLEAN files: content is returned.
+    SUSPICIOUS or MALICIOUS files: quarantined to disk, content withheld.
+
+    Args:
+        repo: GitHub repository in "owner/name" format (e.g. "psf/requests").
+        path: File path within the repo (e.g. "requests/api.py").
+        ref:  Branch, tag, or commit SHA (default: "main").
+    """
+    logger.info("hermes_fetch_github called: repo=%s path=%s ref=%s", repo, path, ref)
+    try:
+        # Basic input validation
+        if "/" not in repo or len(repo.split("/")) != 2:
+            return json.dumps({"status": "error", "error": "repo must be in 'owner/name' format"})
+
+        scanner = get_github_scanner()
+        # Optionally pass a GitHub token from environment (never log it)
+        github_token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
+        result = scanner.fetch_and_scan(repo=repo, path=path, ref=ref, github_token=github_token)
+
+        response = {
+            "classification": result.classification,
+            "repo": result.repo,
+            "path": result.path,
+            "ref": result.ref,
+            "fetched_at": result.fetched_at,
+            "file_size": result.file_size,
+            "layers_run": result.layers_run,
+            "findings_count": len(result.findings),
+            "findings": [
+                {
+                    "layer": f.layer,
+                    "severity": f.severity,
+                    "title": f.title,
+                    "description": f.description,
+                    "line_number": f.line_number,
+                    "snippet": f.snippet,
+                }
+                for f in result.findings
+            ],
+        }
+
+        if result.classification == "CLEAN":
+            response["content"] = result.content
+            response["message"] = "File passed all security scans."
+        else:
+            response["content"] = None
+            response["quarantine_path"] = result.quarantine_path
+            response["message"] = (
+                f"File classified as {result.classification}. "
+                "Content has been quarantined and is not available. "
+                "Review findings before proceeding."
+            )
+
+        return json.dumps(response, indent=2)
+
+    except Exception as exc:
+        logger.exception("hermes_fetch_github failed")
         return json.dumps({"status": "error", "error": str(exc)})
 
 

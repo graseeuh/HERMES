@@ -55,3 +55,6 @@ inspector/state/
 
 # Approval Gate runtime state (machine-local)
 approval/state/
+
+# GitHub Scanner quarantine (potentially malicious content)
+data/quarantine/
