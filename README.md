@@ -1,6 +1,9 @@
 # HERMES - Hierarchical Executable Reasoning and Management Execution System
 
-A voice-activated, multi-agent orchestration system that accepts natural language commands, intelligently routes tasks to specialized agents, and supports agent reuse (buffing) for efficiency.
+A voice-activated, multi-agent orchestration system with independent oversight.
+Accepts natural language commands, routes tasks to specialized agents, enforces
+approval gates on destructive actions, and audits all results through an
+independent Inspector General.
 
 ---
 
@@ -8,322 +11,356 @@ A voice-activated, multi-agent orchestration system that accepts natural languag
 
 1. [Quick Start](#quick-start)
 2. [Running HERMES](#running-hermes)
-3. [Voice Commands](#voice-commands)
-4. [Python API](#python-api)
+3. [MCP Server Mode](#mcp-server-mode)
+4. [MCP Tools Reference](#mcp-tools-reference)
 5. [Architecture](#architecture)
-6. [Agent Types](#agent-types)
-7. [Agent Buffing](#agent-buffing)
-8. [Configuration](#configuration)
-9. [Security Audit](#security-audit)
-10. [File Structure](#file-structure)
+6. [Oversight System](#oversight-system)
+7. [Agent Types](#agent-types)
+8. [Agent Buffing](#agent-buffing)
+9. [Voice Commands](#voice-commands)
+10. [Python API](#python-api)
+11. [Configuration](#configuration)
+12. [Security](#security)
+13. [File Structure](#file-structure)
 
 ---
 
 ## Quick Start
 
 ```bash
-# Navigate to project
-cd .\HERMES
-
 # Activate virtual environment
 .\venv\Scripts\activate
 
-# Run voice-controlled HERMES
+# MCP server mode (Claude Code integration)
+python main.py --mcp
+
+# Voice-controlled mode
 python hermes_listener.py
+
+# Interactive text mode
+python main.py
 ```
 
 ---
 
 ## Running HERMES
 
-### Option 1: Always-On Voice Listener (Recommended)
+### Option 1: MCP Server (Claude Code Integration)
+
+Exposes HERMES as an MCP server over stdio. Claude Code connects to it and
+can call HERMES tools directly.
+
+```bash
+python main.py --mcp
+# or
+HERMES_MODE=mcp python main.py
+```
+
+Configure in `.mcp.json` or `~/.claude/settings.local.json`:
+```json
+{
+  "mcpServers": {
+    "hermes": {
+      "command": "C:\\Users\\<username>\\HERMES\\venv\\Scripts\\python.exe",
+      "args": ["C:\\Users\\<username>\\HERMES\\mcp_server.py"],
+      "env": {
+        "HERMES_MODE": "mcp",
+        "PYTHONPATH": "C:\\Users\\<username>\\HERMES"
+      }
+    }
+  }
+}
+```
+
+### Option 2: Always-On Voice Listener
 
 Continuously listens for "Hey Hermes" wake word:
 
 ```bash
 python hermes_listener.py
-```
-
-With specific microphone:
-```bash
+# With specific microphone:
 python hermes_listener.py --mic 1
 ```
 
-### Option 2: Interactive Voice Control
-
-Manual voice control session:
-
-```bash
-python voice_control.py
-```
-
 ### Option 3: Interactive Text Mode
-
-Command-line text interface:
 
 ```bash
 python main.py
 ```
 
-### Option 4: Python Import
+### Option 4: Python API
 
 ```python
 from main import HERMES
 
 hermes = HERMES()
-result = hermes.run("Your task description here")
+result = hermes.run("Analyze the codebase for unused imports")
 print(result.summary)
-```
-
-### Option 5: Test Voice Recognition
-
-Test your microphone setup:
-
-```bash
-python test_voice.py
 ```
 
 ---
 
-## Voice Commands
+## MCP Server Mode
 
-### Activation
+HERMES exposes 6 tools when running as an MCP server:
 
-| Wake Word | Action |
-|-----------|--------|
-| "Hey Hermes" | Activates listening mode |
-| "Hermes" | Activates listening mode |
-| "Ok Hermes" | Activates listening mode |
+### Normal Task Execution
 
-### Built-in Commands
+```
+hermes_execute("analyze all Python files for security issues")
+→ runs through orchestrator + inspector
+← { status, summary, results, inspector: { passed, flags, confidence } }
+```
 
-| Say | What Happens |
-|-----|--------------|
-| "Create a file called [name]" | Creates a new file |
-| "Make a file named [name]" | Creates a new file |
-| "Search for [term]" | Searches the codebase |
-| "Find [something]" | Searches for files/code |
-| "Status" | Shows HERMES system status |
-| "Help" | Lists available commands |
-| "What time is it" | Tells current time |
-| "Stop listening" | Exits HERMES |
-| "Quit" / "Exit" | Exits HERMES |
+### Destructive Task Flow
 
-### Task Commands (Sent to Orchestrator)
+Tasks matching destructive patterns (delete, git push, pip install, etc.)
+require explicit approval before execution:
 
-Any command not matching built-in commands is sent to the HERMES orchestrator:
+```
+hermes_execute("delete all log files older than 30 days")
+← { status: "approval_required", request_id: "req_a1b2c3d4", matched_patterns: [...] }
 
-| Example | Processing |
-|---------|------------|
-| "Write a function to validate emails" | Spawns CODE agent |
-| "Analyze the project structure" | Spawns RESEARCH agent |
-| "Detect hand gestures from webcam" | Spawns VISION agent |
-| "Monitor audio levels" | Spawns AUDIO agent |
-| "Plan the authentication system" | Spawns PLAN agent |
+hermes_approve("req_a1b2c3d4", approved=True, reason="confirmed cleanup")
+← { status: "completed", approved_by_user: true, results: {...}, inspector: {...} }
+```
 
 ---
 
-## Python API
+## MCP Tools Reference
 
-### Basic Usage
-
-```python
-from main import HERMES
-
-# Initialize
-hermes = HERMES()
-hermes.set_verbose(True)  # Enable detailed output
-
-# Run a task
-result = hermes.run("Search for error handling patterns and write a utility")
-print(result.summary)
-print(f"Status: {result.status.value}")
-print(f"Execution time: {result.execution_time}s")
-```
-
-### Analyze Without Executing
-
-```python
-# See what HERMES would do without running
-analysis = hermes.analyze("Complex multi-step task description")
-
-print(f"Subtasks: {len(analysis['subtasks'])}")
-for st in analysis['subtasks']:
-    print(f"  [{st['type']}] {st['description']}")
-
-print(f"Execution groups: {analysis['execution_groups']}")
-print(f"Buff decisions: {analysis['buff_decisions']}")
-```
-
-### Plan Then Execute
-
-```python
-# Create plan
-plan = hermes.plan("Your task here")
-
-# Review plan
-for subtask in plan.parsed_task.subtasks:
-    print(f"{subtask.id}: {subtask.task_type.value}")
-
-# Execute when ready
-result = hermes.execute(plan)
-```
-
-### Check System Status
-
-```python
-status = hermes.status()
-print(f"Templates loaded: {status['templates_loaded']}")
-print(f"Registry stats: {status['registry_stats']}")
-```
+| Tool | Description |
+|------|-------------|
+| `hermes_execute(task)` | Execute a natural-language task. Returns `approval_required` for destructive tasks. |
+| `hermes_approve(request_id, approved, reason)` | Approve or deny a pending destructive action. If approved, executes and returns result. |
+| `hermes_list_pending()` | List all approval requests currently waiting for confirmation. |
+| `hermes_status()` | Orchestrator status: agent counts, templates loaded, executor availability. |
+| `hermes_query_agents(status_filter, task_type_filter)` | Query the agent registry. Filter by status or task type. |
+| `hermes_inspector_report(days)` | Inspector General behavioral stats and recent audit log entries. |
 
 ---
 
 ## Architecture
 
 ```
-User Input (Voice/Text)
-        |
-        v
-+-------------------+
-|   Task Parser     |  Analyzes natural language
-|   (task_parser)   |  Extracts subtasks & dependencies
-+-------------------+
-        |
-        v
-+-------------------+
-|  Agent Matcher    |  Checks for existing compatible agents
-|  (agent_matcher)  |  Decides: BUFF existing or SPAWN new
-+-------------------+
-        |
-        v
-+-------------------+
-| Prompt Generator  |  Loads templates from knowledge_base
-| (prompt_generator)|  Creates customized agent prompts
-+-------------------+
-        |
-        v
-+-------------------+
-|   Orchestrator    |  Coordinates execution
-|  (orchestrator)   |  Manages parallel/sequential groups
-+-------------------+
-        |
-        v
-+-------------------+
-|  Claude Bridge    |  Interface to Claude Code Task tool
-| (claude_bridge)   |  Spawns subagents
-+-------------------+
-        |
-        v
-+-------------------+
-|  Agent Registry   |  Tracks all agents
-| (agent_registry)  |  Stores results & state
-+-------------------+
+You (voice / text / Claude Code MCP)
+              |
+      ┌───────┴────────┐
+      │  Approval Gate  │  ← checks BEFORE execution
+      │  (approval/)    │    destructive tasks require your OK
+      └───────┬────────┘
+              │ approved
+      ┌───────┴────────┐
+      │  Orchestrator   │  ← does the work
+      │  (core_logic/)  │    parses, routes, executes agents
+      │                 │    runs mandatory security gate last
+      └───────┬────────┘
+              │ raw result
+      ┌───────┴────────┐
+      │  Inspector      │  ← audits AFTER execution
+      │  General        │    independent — orchestrator cannot
+      │  (inspector/)   │    call, bypass, or write to it
+      └───────┬────────┘
+              │ annotated result
+             You
 ```
 
 ### Execution Flow
 
 ```
-1. Parse task into subtasks
-2. Detect dependencies between subtasks
-3. Group independent subtasks (can run parallel)
+1. Approval Gate checks task for destructive patterns
+   → if matched: return approval_required (stop here)
+   → if safe: continue
+
+2. Orchestrator parses task into subtasks
+3. Detects dependencies, groups independent subtasks
 4. For each subtask:
-   - Check if existing agent can handle (BUFF)
-   - If not, generate prompt and spawn new agent
-5. Execute groups sequentially, tasks within groups in parallel
-6. Aggregate results
-7. Return unified response
+   - Check for compatible existing agent (BUFF) or spawn new one
+   - Generate prompt from template
+   - Execute via Claude Code executor
+5. Run mandatory security gate on all outputs
+6. Return ExecutionResult
+
+7. Inspector General (independent) receives raw result:
+   - Verifies security gate ran
+   - Checks timing plausibility
+   - Detects error suppression
+   - Validates file path claims
+   - Tracks behavioral patterns across sessions
+   - Writes to its own immutable audit log
+8. Inspector verdict attached to response
 ```
+
+---
+
+## Oversight System
+
+HERMES has three independent oversight layers, each structurally isolated from the others.
+
+### Approval Gate (`approval/`)
+
+Intercepts tasks **before** they execute. Cannot be bypassed by the orchestrator — it runs at the MCP boundary before the orchestrator is ever called.
+
+**Destructive patterns detected:**
+- File/data deletion: `delete`, `remove`, `erase`, `wipe`, `drop table`, `truncate`, `rm`
+- Git remote operations: `git push`, `deploy`, `force push`
+- Package installation: `pip install`, `npm install`, `apt install`
+- External communications: `send email`, `post to`, `webhook`, `call API`
+- System operations: `kill process`, `shutdown`, `restart service`, `format disk`
+- Overwrite operations: `overwrite`, `replace all`, `rewrite entire`
+
+Pending approvals persist across MCP server restarts (5-minute timeout).
+
+### Security Gate (inside `core_logic/orchestrator.py`)
+
+Mandatory final step after every task execution. Runs a security agent over all
+outputs before results are returned. Always adds a `security_gate` key to results.
+
+### Inspector General (`inspector/`)
+
+Independent auditor that runs **after** the orchestrator returns. The orchestrator
+has zero import paths to the inspector — it cannot call, skip, or write to it.
+
+**Checks run on every result:**
+| Check | Flag |
+|-------|------|
+| Security gate absent from results | `SECURITY_GATE_ABSENT` |
+| Sub-100ms execution of completed task | `IMPLAUSIBLE_EXECUTION_TIME` |
+| Completed status but empty results | `COMPLETED_WITH_NO_RESULTS` |
+| Errors present but summary claims success | `ERROR_SUPPRESSION_DETECTED` |
+| Results exist but no agents claimed | `NO_AGENTS_CLAIMED_BUT_RESULTS_EXIST` |
+| Claimed file path doesn't exist on disk | `CLAIMED_FILE_NOT_FOUND: <path>` |
+| Malformed result entry structure | `MALFORMED_RESULT_ENTRY: <id>` |
+
+**Behavioral monitoring** (cross-session, persisted to `inspector/state/`):
+- Tracks success rate, flag rate, security gate skip rate
+- Detects anomalies: success rate drop >20% from baseline, gate skip rate >10%, flag rate >30%
+
+**Audit log** (`inspector/logs/inspector_YYYYMMDD.jsonl`):
+- Append-only JSONL, one entry per execution
+- The orchestrator has no write path to this file
 
 ---
 
 ## Agent Types
 
-| Type | Purpose | Template | Claude Subagent |
-|------|---------|----------|-----------------|
-| CODE | Write, debug, refactor code | `code_agent.json` | general-purpose |
-| RESEARCH | Explore codebase, analyze | `research_agent.json` | Explore |
-| VISION | MediaPipe/OpenCV processing | `vision_agent.json` | general-purpose |
-| AUDIO | sounddevice audio tasks | `audio_agent.json` | general-purpose |
-| PLAN | Design, architect systems | - | Plan |
-| SECURITY | Security audit, review | `security_agent.json` | general-purpose |
-| CUSTOM | User-defined prompts | Custom | general-purpose |
-
-### Task Type Detection Keywords
-
-**CODE**: write, code, implement, create function, build, develop, program, fix, debug, refactor
-
-**RESEARCH**: find, search, look for, explore, investigate, understand, analyze, review, check
-
-**VISION**: webcam, camera, image, video, detect, recognize, hand, face, pose, gesture, mediapipe, opencv
-
-**AUDIO**: audio, sound, microphone, listen, voice, speech, record, sounddevice, frequency
-
-**PLAN**: plan, design, architect, strategy, approach, outline, structure
+| Type | Purpose | Template | Keywords |
+|------|---------|----------|---------|
+| CODE | Write, debug, refactor code | `code_agent.json` | write, implement, build, fix, debug, refactor |
+| RESEARCH | Explore codebase, analyze | `research_agent.json` | find, search, explore, analyze, review |
+| VISION | MediaPipe/OpenCV processing | `vision_agent.json` | webcam, camera, detect, hand, face, pose |
+| AUDIO | sounddevice audio tasks | `audio_agent.json` | audio, sound, microphone, speech, frequency |
+| KICAD | PCB design, schematics | `kicad_agent.json` | kicad, pcb, schematic, footprint, gerber |
+| TOUCHDESIGNER | Realtime visuals, GLSL | `touchdesigner_agent.json` | touchdesigner, glsl, generative, realtime |
+| PLAN | Design, architect systems | — | plan, design, architect, strategy |
+| SECURITY | Security audit, review | `security_agent.json` | security, audit, vulnerability, owasp |
+| CUSTOM | User-defined prompts | Custom | — |
 
 ---
 
 ## Agent Buffing
 
-Buffing = reusing existing agents instead of spawning new ones.
-
-### How It Works
+Buffing = reusing an existing agent instead of spawning a new one.
 
 ```
 New Task Arrives
-      |
-      v
-+------------------+
-|  Agent Matcher   |
-+--------+---------+
-         |
-    Compatible agent?
-        /    \
-      YES     NO
-       |       |
-       v       v
-    BUFF     SPAWN
-   (reuse)   (new)
+      │
+      ▼
+Agent Matcher checks registry
+      │
+  Compatible?
+   /       \
+YES         NO
+ │           │
+BUFF       SPAWN
+(reuse)    (new)
 ```
 
-### Match Scoring
+**Match scoring:**
+- Task type match: 40%
+- Specialization match: 25%
+- Context overlap: 20%
+- Workload factor: 15%
+- Minimum score to buff: 50%
 
-Agents are scored on:
-- **Task type match** (40%): Does agent handle this task type?
-- **Specialization match** (25%): Relevant specializations?
-- **Context overlap** (20%): Shared files/technologies?
-- **Workload factor** (15%): Agent not overloaded?
+---
 
-Minimum score for buffing: **0.5** (50%)
+## Voice Commands
 
-### Example
+### Wake Words
+
+| Say | Action |
+|-----|--------|
+| "Hey Hermes" | Activates listening |
+| "Hermes" | Activates listening |
+| "Ok Hermes" | Activates listening |
+
+### Built-in Commands
+
+| Say | What Happens |
+|-----|--------------|
+| "Status" | Shows HERMES system status |
+| "Help" | Lists available commands |
+| "Stop listening" / "Quit" | Exits HERMES |
+
+### Task Commands
+
+Any command not matching built-ins is routed to the orchestrator:
+
+```
+"Write a function to validate emails"  → CODE agent
+"Analyze the project structure"        → RESEARCH agent
+"Detect hand gestures from webcam"     → VISION agent
+"Design a PCB for an ESP32"            → KICAD agent
+"Create a generative particle system"  → TOUCHDESIGNER agent
+```
+
+---
+
+## Python API
 
 ```python
-# First task spawns a CODE agent
-hermes.run("Write a validation function")
-# Agent: code_agent_task_1 (NEW)
+from main import HERMES
 
-# Second similar task BUFFS the existing agent
-hermes.run("Write another utility function")
-# Agent: code_agent_task_1 (BUFFED - reused!)
+hermes = HERMES()
+hermes.set_verbose(True)
+
+# Execute a task
+result = hermes.run("Search for error handling patterns and write a utility")
+print(result.summary)
+print(f"Status: {result.status.value}")
+print(f"Time: {result.execution_time:.2f}s")
+
+# Analyze without executing
+analysis = hermes.analyze("Build a REST API with authentication")
+for st in analysis['subtasks']:
+    print(f"  [{st['type']}] {st['description']}")
+
+# Plan then execute
+plan = hermes.plan("Your task here")
+result = hermes.execute(plan)
+
+# System status
+print(hermes.status())
 ```
 
 ---
 
 ## Configuration
 
-### Knowledge Base Structure
+### Knowledge Base
 
 ```
 knowledge_base/
-├── prompts/          # Saved generated prompts (JSON)
-│   └── prompt_*.json
+├── prompts/          # Saved generated prompts (auto-created)
 └── templates/        # Agent prompt templates
     ├── code_agent.json
     ├── research_agent.json
     ├── vision_agent.json
     ├── audio_agent.json
-    └── security_agent.json
+    ├── security_agent.json
+    ├── kicad_agent.json
+    └── touchdesigner_agent.json
 ```
 
 ### Template Format
@@ -332,190 +369,124 @@ knowledge_base/
 {
   "name": "code_agent",
   "task_type": "code",
-  "base_prompt": "You are a HERMES Code Agent...\n\n## Your Task\n{task_description}\n\n## Context\n{context}",
+  "base_prompt": "You are a HERMES Code Agent...\n\n## Your Task\n{task_description}",
   "specializations": ["python", "debugging", "refactoring"],
-  "context_keywords": ["implement", "write", "code", "function"],
+  "context_keywords": ["implement", "write", "code"],
   "variables": ["task_description", "context", "files", "technologies"]
 }
 ```
 
-### Available Template Variables
+### Runtime State (not committed to git)
 
-| Variable | Description |
-|----------|-------------|
-| `{task_description}` | The user's task |
-| `{task_type}` | code, research, vision, etc. |
-| `{task_id}` | Unique task identifier |
-| `{context}` | Extracted context (JSON) |
-| `{files}` | Mentioned file paths |
-| `{technologies}` | Detected technologies |
-| `{additional_context}` | Extra context passed |
+```
+inspector/
+├── logs/             # Inspector audit logs (YYYYMMDD.jsonl)
+└── state/            # Behavioral monitor state (behavioral_state.json)
+
+approval/
+└── state/            # Pending approval requests (pending_approvals.json)
+```
 
 ---
 
-## Security Audit
+## Security
 
-Run before deploying:
+### Pre-commit Hook
+
+Scans all staged files for PII and secrets before every commit:
+
+```bash
+python scripts/pre_commit_scan.py
+```
+
+### Security Audit
 
 ```bash
 python run_security_audit.py
-```
-
-Verbose mode:
-```bash
 python run_security_audit.py --verbose
 ```
 
-### What It Checks
+Checks: command injection, SQL injection, path traversal, hardcoded secrets,
+bare excepts, missing input validation, unclosed resources.
 
-| Category | Checks |
-|----------|--------|
-| **Security** | Command injection, SQL injection, path traversal, hardcoded secrets |
-| **Edge Cases** | None checks, empty collections, division by zero |
-| **Efficiency** | Nested loops, repeated computations, string concatenation in loops |
-| **Error Handling** | Bare except, silent pass, missing finally |
-| **Input Validation** | User input sanitization |
-| **Resources** | File handles, connections properly closed |
+### Inspector Report
 
-### Exit Codes
+Query the Inspector General's independent audit log:
 
-| Code | Meaning |
-|------|---------|
-| 0 | PASS - Safe to run |
-| 1 | WARN - High severity issues |
-| 2 | FAIL - Critical issues found |
+```
+hermes_inspector_report(days=7)
+← { behavioral_report: { success_rate, flag_rate, anomalies_detected, ... },
+    recent_log_entries: [...] }
+```
 
 ---
 
 ## File Structure
 
 ```
-HERMES_Project/
-├── main.py                    # Main entry point, HERMES class
-├── hermes_listener.py         # Always-on voice listener
-├── voice_control.py           # Interactive voice control
-├── test_voice.py              # Microphone test utility
-├── run_security_audit.py      # Security audit runner
-├── requirements.txt           # Python dependencies
-├── README.md                  # This file
+HERMES/
+├── main.py                      # Entry point — CLI and MCP mode
+├── mcp_server.py                # FastMCP server (6 tools)
+├── hermes_listener.py           # Always-on voice listener
+├── voice_control.py             # Interactive voice control
+├── run_security_audit.py        # Security audit runner
+├── requirements.txt
+├── README.md
 │
 ├── core_logic/
-│   ├── __init__.py
-│   ├── orchestrator.py        # Main coordination engine
-│   ├── task_parser.py         # NL parsing, subtask extraction
-│   ├── agent_registry.py      # Agent tracking, state management
-│   ├── agent_matcher.py       # Buffing logic, compatibility scoring
-│   ├── prompt_generator.py    # Template loading, prompt creation
-│   └── security_agent.py      # Security scanning
+│   ├── orchestrator.py          # Coordination engine, security gate
+│   ├── task_parser.py           # NL parsing, subtask extraction
+│   ├── agent_registry.py        # Agent tracking and state
+│   ├── agent_matcher.py         # Buffing logic, compatibility scoring
+│   ├── prompt_generator.py      # Template loading, prompt creation
+│   └── security_agent.py        # Security scanning patterns
+│
+├── inspector/                   # Inspector General (independent auditor)
+│   ├── inspector_general.py     # Main class, InspectorVerdict dataclass
+│   ├── claim_verifier.py        # 7 stateless result checks
+│   ├── behavioral_monitor.py    # Cross-session behavioral tracking
+│   └── inspector_log.py         # Append-only JSONL audit log
+│
+├── approval/                    # Approval Gate (pre-execution)
+│   └── approval_gate.py         # Pattern detection, request lifecycle
 │
 ├── integration/
-│   ├── __init__.py
-│   └── claude_bridge.py       # Claude Code Task tool interface
+│   ├── claude_bridge.py         # Claude Code Task tool interface
+│   ├── claude_code_executor.py  # Claude CLI subprocess executor
+│   └── claude_llm_client.py     # Direct LLM client
 │
 ├── sensors/
-│   ├── __init__.py
-│   ├── vision_interface.py    # MediaPipe/OpenCV wrapper
-│   ├── audio_interface.py     # sounddevice wrapper
-│   └── voice_interface.py     # Speech recognition wrapper
+│   ├── voice_interface.py       # Speech recognition
+│   ├── audio_interface.py       # sounddevice wrapper
+│   ├── vision_interface.py      # MediaPipe/OpenCV
+│   ├── face_recognition_interface.py
+│   └── tts_interface.py         # Text-to-speech
 │
 ├── knowledge_base/
-│   ├── __init__.py
-│   ├── prompts/               # Saved prompts
-│   └── templates/             # Agent templates
-│       ├── code_agent.json
-│       ├── research_agent.json
-│       ├── vision_agent.json
-│       ├── audio_agent.json
-│       └── security_agent.json
+│   └── templates/               # Agent prompt templates
 │
-└── venv/                      # Python virtual environment
+├── scripts/
+│   ├── pre_commit_scan.py       # PII/secrets pre-commit hook
+│   ├── enroll_face.py           # Face recognition enrollment
+│   └── setup_autostart.py       # Windows autostart setup
+│
+├── config/
+│   └── voice_config.py          # Voice recognition settings
+│
+└── plans/
+    └── mcp_server_transformation.md  # Architecture roadmap
 ```
 
 ---
 
 ## Dependencies
 
-```
-absl-py==2.3.1
-cffi==2.0.0
-flatbuffers==25.12.19
-mediapipe==0.10.31
-numpy==2.2.6
-opencv-python==4.12.0.88
-pycparser==2.23
-sounddevice==0.5.3
-SpeechRecognition
-PyAudio
-```
-
-Install all:
 ```bash
 pip install -r requirements.txt
-pip install SpeechRecognition PyAudio
 ```
 
----
-
-## Troubleshooting
-
-### Voice not detected
-1. Check microphone in Windows Sound Settings
-2. Run `python test_voice.py` to test
-3. Try different mic index: `python hermes_listener.py --mic 1`
-
-### Low audio levels
-- Increase microphone volume in Windows Settings
-- Check microphone isn't muted
-- Try a different microphone
-
-### Import errors
-```bash
-# Ensure venv is activated
-.\venv\Scripts\activate
-
-# Reinstall dependencies
-pip install -r requirements.txt
-```
-
-### Security audit fails
-```bash
-# Run verbose to see issues
-python run_security_audit.py --verbose
-
-# Fix issues, then re-run
-```
-
----
-
-## Quick Reference Card
-
-```
-ACTIVATION:
-  "Hey Hermes" / "Hermes" / "Ok Hermes"
-
-FILE OPERATIONS:
-  "Create a file called notes.txt"
-  "Make a file named config.json"
-
-SEARCH:
-  "Search for error handling"
-  "Find Python files"
-  "Look for authentication code"
-
-CODING:
-  "Write a function to validate emails"
-  "Fix the bug in main.py"
-  "Refactor the user class"
-
-ANALYSIS:
-  "Analyze the project structure"
-  "Review the security of auth.py"
-
-SYSTEM:
-  "Status" - Show system status
-  "Help" - List commands
-  "Stop listening" - Exit
-```
+Key dependencies: `mcp[cli]`, `anthropic`, `openai`, `mediapipe`, `opencv-python`,
+`sounddevice`, `SpeechRecognition`, `face_recognition`, `cryptography`, `keyring`
 
 ---
 
