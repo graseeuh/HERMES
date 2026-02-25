@@ -5,6 +5,7 @@ Persists generated prompts for reuse.
 """
 
 import json
+import logging
 import os
 import hashlib
 from datetime import datetime
@@ -12,6 +13,8 @@ from pathlib import Path
 from dataclasses import dataclass, asdict
 from typing import Dict, Any, Optional, List
 from .task_parser import TaskType, SubTask
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -87,7 +90,7 @@ class PromptGenerator:
                 )
                 self._templates[template.name] = template
             except (json.JSONDecodeError, KeyError, ValueError) as e:
-                print(f"Warning: Failed to load template {template_file}: {e}")
+                logger.warning("Failed to load template %s: %s", template_file, e)
 
     def get_template(self, name: str) -> Optional[PromptTemplate]:
         """Get a template by name."""

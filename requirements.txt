@@ -35,3 +35,8 @@ cryptography>=41.0.0
 
 # Secure key storage (Windows Credential Manager, macOS Keychain)
 keyring>=24.0.0
+youtube-transcript-api==0.6.2
+
+# MCP server (Claude Code integration)
+mcp[cli]>=1.2.0
+

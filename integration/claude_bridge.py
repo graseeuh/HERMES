@@ -55,6 +55,8 @@ class ClaudeBridge:
         'research': SubagentType.EXPLORE.value,
         'vision': SubagentType.GENERAL_PURPOSE.value,
         'audio': SubagentType.GENERAL_PURPOSE.value,
+        'kicad': SubagentType.GENERAL_PURPOSE.value,
+        'touchdesigner': SubagentType.GENERAL_PURPOSE.value,
         'plan': SubagentType.PLAN.value,
         'custom': SubagentType.GENERAL_PURPOSE.value
     }

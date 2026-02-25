@@ -172,6 +172,12 @@ def main():
     """Main entry point for command-line usage."""
     import sys
 
+    # MCP server mode: --mcp flag or HERMES_MODE=mcp env var
+    if "--mcp" in sys.argv or os.environ.get("HERMES_MODE") == "mcp":
+        from mcp_server import main as mcp_main
+        mcp_main()
+        return
+
     print("=" * 60)
     print("HERMES - Agent Orchestration System")
     print("=" * 60)

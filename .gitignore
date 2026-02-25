@@ -48,3 +48,10 @@ __MACOSX/
 projects/outreach/data/
 projects/touchdesigner/release/*.toe
 projects/touchdesigner/release/toxes/*.tox
+
+# Inspector General runtime data (logs and state are machine-local)
+inspector/logs/
+inspector/state/
+
+# Approval Gate runtime state (machine-local)
+approval/state/
