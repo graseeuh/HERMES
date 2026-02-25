@@ -295,8 +295,18 @@ Full planning session transcript available in local Claude project history.
 
 ---
 
-## Status: PARTIALLY IMPLEMENTED
-*Saved: 2026-02-10 | Updated: 2026-02-24*
+## Status: LARGELY IMPLEMENTED
+*Saved: 2026-02-10 | Updated: 2026-02-25*
 
-**Completed:** Phase 2 (MCP server core — `mcp_server.py`, 3 tools), Phase 3 (Approval Gates — `approval/`), Inspector General (`inspector/`)
-**Pending:** Phase 1 (security/ package), Phase 4 (GitHub scanner), Phase 6 (tests), true parallel execution
+**Completed:**
+- Phase 2: MCP server core (`mcp_server.py`, 7 tools total)
+- Phase 3: Approval Gates (`approval/`) — pre-execution safety gate
+- Inspector General (`inspector/`) — independent post-execution auditor
+- Phase 4 (partial): GitHub scanner (`security/github_scanner.py`) — 4-layer malicious content scanning, quarantine
+- True parallel execution — `ThreadPoolExecutor` in `_execute_group()`, thread-safe `AgentRegistry`
+- Phase 6: Full test suite (`tests/`) — 91 tests, 0 failures
+
+**Pending:**
+- Phase 1: `security/` package — credential vault, PII detector, I/O sanitizer
+- Phase 4 (remaining): `security/file_acl.py` — file access control per agent type
+- `hermes_security_audit` and `hermes_configure` MCP tools (listed in plan, not yet built)
