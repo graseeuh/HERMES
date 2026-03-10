@@ -528,9 +528,41 @@ def _safe_serialise(obj):
 # Entry point
 # ---------------------------------------------------------------------------
 def main():
-    """Run the HERMES MCP server over stdio."""
-    logger.info("Starting HERMES MCP Server (stdio)")
-    mcp.run(transport="stdio")
+    """Run the HERMES MCP server.
+
+    Default: stdio transport (for Claude Code on desktop — unchanged behaviour).
+    iPhone:  SSE transport so the Claude iOS app can connect over your local
+             Wi-Fi network.
+
+    To start the iPhone-accessible SSE server:
+
+        python mcp_server.py --sse
+
+    Or with environment variables:
+
+        HERMES_TRANSPORT=sse python mcp_server.py
+        HERMES_TRANSPORT=sse HERMES_SSE_PORT=7778 python mcp_server.py
+
+    Then in the Claude iOS app → Settings → MCP Servers → Add Server:
+        URL:  http://<your-desktop-ip>:7778/sse
+        Name: HERMES
+    """
+    import sys
+
+    use_sse = "--sse" in sys.argv or os.environ.get("HERMES_TRANSPORT", "").lower() == "sse"
+
+    if use_sse:
+        port = int(os.environ.get("HERMES_SSE_PORT", "7778"))
+        logger.info(
+            "Starting HERMES MCP Server (SSE on 0.0.0.0:%d) — "
+            "connect from Claude iOS app at http://<this-machine-ip>:%d/sse",
+            port,
+            port,
+        )
+        mcp.run(transport="sse", host="0.0.0.0", port=port)
+    else:
+        logger.info("Starting HERMES MCP Server (stdio)")
+        mcp.run(transport="stdio")
 
 
 if __name__ == "__main__":
