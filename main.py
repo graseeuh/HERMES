@@ -9,7 +9,7 @@ Usage:
     from main import HERMES
 
     hermes = HERMES()
-    result = hermes.run("Analyze the webcam feed and detect hand gestures")
+    result = hermes.run("Find all Python files and analyze their imports")
     print(result.summary)
 """
 
