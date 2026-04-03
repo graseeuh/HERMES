@@ -34,3 +34,6 @@ Do not refactor these into a shared module or add imports between layers.
 ## Testing
 - 91 tests, 0 failures — run full suite after any change to core_logic/ or inspector/
 - Test files: `test_claim_verifier.py` (18), `test_inspector.py` (13), `test_approval.py` (19), `test_github_scanner.py` (27), `test_registry.py` (9), `test_orchestrator.py` (4)
+
+## Compact Instructions
+When compacting, preserve: code changes with file paths, test results, errors/blockers, and any user decisions made during the conversation. Drop verbose tool output and intermediate exploration.
