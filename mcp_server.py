@@ -7,9 +7,14 @@ for Claude Code integration over stdio.
 import json
 import logging
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Optional
+
+_GITHUB_REPO_RE = re.compile(r"^[A-Za-z0-9_.\-]+/[A-Za-z0-9_.\-]+$")
+_GITHUB_PATH_RE = re.compile(r"^[A-Za-z0-9_.\-/]+$")
+_GITHUB_REF_RE = re.compile(r"^[A-Za-z0-9_.\-/]+$")
 
 from mcp.server.fastmcp import FastMCP
 
@@ -327,9 +332,13 @@ def hermes_fetch_github(repo: str, path: str, ref: str = "main") -> str:
     """
     logger.info("hermes_fetch_github called: repo=%s path=%s ref=%s", repo, path, ref)
     try:
-        # Basic input validation
-        if "/" not in repo or len(repo.split("/")) != 2:
-            return json.dumps({"status": "error", "error": "repo must be in 'owner/name' format"})
+        # Strict input validation to prevent URL manipulation / SSRF
+        if not _GITHUB_REPO_RE.match(repo):
+            return json.dumps({"status": "error", "error": "repo must be in 'owner/name' format (alphanumeric, hyphens, dots, underscores only)"})
+        if ".." in path or not _GITHUB_PATH_RE.match(path):
+            return json.dumps({"status": "error", "error": "path contains invalid characters"})
+        if not _GITHUB_REF_RE.match(ref):
+            return json.dumps({"status": "error", "error": "ref contains invalid characters"})
 
         scanner = get_github_scanner()
         # Optionally pass a GitHub token from environment (never log it)
@@ -363,7 +372,7 @@ def hermes_fetch_github(repo: str, path: str, ref: str = "main") -> str:
             response["message"] = "File passed all security scans."
         else:
             response["content"] = None
-            response["quarantine_path"] = result.quarantine_path
+            response["quarantine_path"] = Path(result.quarantine_path).name if result.quarantine_path else None
             response["message"] = (
                 f"File classified as {result.classification}. "
                 "Content has been quarantined and is not available. "
