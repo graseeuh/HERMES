@@ -1,6 +1,6 @@
 # HERMES - Hierarchical Executable Reasoning and Management Execution System
 
-A voice-activated, multi-agent orchestration system with independent oversight.
+A multi-agent AI orchestration system with independent oversight.
 Accepts natural language commands, routes tasks to specialized agents, enforces
 approval gates on destructive actions, and audits all results through an
 independent Inspector General.
@@ -17,11 +17,10 @@ independent Inspector General.
 6. [Oversight System](#oversight-system)
 7. [Agent Types](#agent-types)
 8. [Agent Buffing](#agent-buffing)
-9. [Voice Commands](#voice-commands)
-10. [Python API](#python-api)
-11. [Configuration](#configuration)
-12. [Security](#security)
-13. [File Structure](#file-structure)
+9. [Python API](#python-api)
+10. [Configuration](#configuration)
+11. [Security](#security)
+12. [File Structure](#file-structure)
 
 ---
 
@@ -33,9 +32,6 @@ independent Inspector General.
 
 # MCP server mode (Claude Code integration)
 python main.py --mcp
-
-# Voice-controlled mode
-python hermes_listener.py
 
 # Interactive text mode
 python main.py
@@ -427,8 +423,6 @@ hermes_inspector_report(days=7)
 HERMES/
 ├── main.py                      # Entry point — CLI and MCP mode
 ├── mcp_server.py                # FastMCP server (6 tools)
-├── hermes_listener.py           # Always-on voice listener
-├── voice_control.py             # Interactive voice control
 ├── run_security_audit.py        # Security audit runner
 ├── requirements.txt
 ├── README.md
@@ -455,26 +449,15 @@ HERMES/
 │   ├── claude_code_executor.py  # Claude CLI subprocess executor
 │   └── claude_llm_client.py     # Direct LLM client
 │
-├── sensors/
-│   ├── voice_interface.py       # Speech recognition
-│   ├── audio_interface.py       # sounddevice wrapper
-│   ├── vision_interface.py      # MediaPipe/OpenCV
-│   ├── face_recognition_interface.py
-│   └── tts_interface.py         # Text-to-speech
+├── security/
+│   └── github_scanner.py        # 4-layer malicious content scanner
 │
 ├── knowledge_base/
 │   └── templates/               # Agent prompt templates
 │
-├── scripts/
-│   ├── pre_commit_scan.py       # PII/secrets pre-commit hook
-│   ├── enroll_face.py           # Face recognition enrollment
-│   └── setup_autostart.py       # Windows autostart setup
-│
-├── config/
-│   └── voice_config.py          # Voice recognition settings
-│
-└── plans/
-    └── mcp_server_transformation.md  # Architecture roadmap
+└── scripts/
+    ├── pre_commit_scan.py       # PII/secrets pre-commit hook
+    └── launch_hermes.bat        # Windows autostart launcher
 ```
 
 ---
@@ -485,11 +468,10 @@ HERMES/
 pip install -r requirements.txt
 ```
 
-Key dependencies: `mcp[cli]`, `anthropic`, `openai`, `mediapipe`, `opencv-python`,
-`sounddevice`, `SpeechRecognition`, `face_recognition`, `cryptography`, `keyring`
+Key dependencies: `mcp[cli]`, `anthropic`, `numpy`, `requests`
 
 ---
 
 ## License
 
-Internal use only.
+MIT License — see [LICENSE](LICENSE) for details.

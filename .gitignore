@@ -21,6 +21,9 @@ Thumbs.db
 .vscode/
 .idea/
 
+# Stray files
+*.html
+
 # Logs and temp
 *.log
 *.tmp
@@ -35,7 +38,7 @@ data/
 # Security config (contains PII blocklist)
 .hermes_security.json
 
-# Business data
+# Local config (excluded)
 viccia_ai/
 
 # Separate projects with own .git
@@ -46,6 +49,9 @@ __MACOSX/
 
 # Non-core utilities (generators, health scripts, Arduino sketches)
 tools/
+
+# Internal planning docs
+plans/
 
 # Sensitive business docs
 docs/

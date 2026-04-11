@@ -29,7 +29,7 @@ Do not refactor these into a shared module or add imports between layers.
 
 ## What Not to Touch
 - `inspector/logs/`, `inspector/state/`, `approval/state/` — runtime data, never commit
-- `docs/`, `projects/`, `viccia_ai/`, `tools/` — sensitive or non-core, excluded from git
+- `docs/`, `projects/`, `tools/` — non-core, excluded from git
 
 ## Testing
 - 91 tests, 0 failures — run full suite after any change to core_logic/ or inspector/

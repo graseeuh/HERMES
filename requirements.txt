@@ -8,9 +8,6 @@ anthropic>=0.76.0
 # MCP server (Claude Code integration)
 mcp[cli]>=1.2.0
 
-# Content pipeline
-instaloader>=4.15.0
-youtube-transcript-api==0.6.2
 
 # Testing
 pytest>=9.0.2
