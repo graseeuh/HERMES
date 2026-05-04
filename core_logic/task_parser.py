@@ -19,6 +19,7 @@ class TaskType(Enum):
     PLAN = "plan"
     CUSTOM = "custom"
     SECURITY = "security"
+    EDGE_AI = "edge_ai"
 
 
 @dataclass
@@ -120,6 +121,14 @@ class TaskParser:
             'security', 'audit', 'vulnerability', 'secure', 'penetration',
             'owasp', 'sanitize', 'validate input', 'injection', 'xss',
             'csrf', 'authentication', 'authorization', 'encrypt', 'pentest'
+        ],
+        TaskType.EDGE_AI: [
+            'jetson', 'orin', 'tensorrt', 'yolo', 'yolov8', 'int8',
+            'federated learning', 'flower', 'flwr', 'edge ai', 'edge inference',
+            'csi-2', 'csi2', 'imx477', 'arducam', 'pir', 'gpio',
+            'ir led', 'infrared', 'embedded ai', 'on-device', 'on device',
+            'waveshare', 'jetpack', 'deepstream', 'cuda inference',
+            'trt', 'tensorrt engine', 'fedavg', 'fl training'
         ]
     }
 
@@ -226,7 +235,9 @@ class TaskParser:
         tech_keywords = [
             'mediapipe', 'opencv', 'numpy', 'python', 'sounddevice',
             'kicad', 'pcbnew', 'eeschema', 'gerber', 'spice',
-            'touchdesigner', 'glsl', 'osc', 'midi', 'ndi', 'dmx', 'art-net'
+            'touchdesigner', 'glsl', 'osc', 'midi', 'ndi', 'dmx', 'art-net',
+            'jetson', 'tensorrt', 'yolov8', 'flower', 'flwr', 'cuda',
+            'jetpack', 'deepstream', 'trtexec', 'onnx'
         ]
         mentioned_tech = [t for t in tech_keywords if t in text.lower()]
         if mentioned_tech:

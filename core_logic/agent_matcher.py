@@ -281,7 +281,8 @@ class AgentMatcher:
             TaskType.TOUCHDESIGNER: "general-purpose",
             TaskType.PLAN: "Plan",
             TaskType.CUSTOM: "general-purpose",
-            TaskType.SECURITY: "security"
+            TaskType.SECURITY: "security",
+            TaskType.EDGE_AI: "general-purpose"
         }
         return type_mapping.get(subtask.task_type, "general-purpose")
 
