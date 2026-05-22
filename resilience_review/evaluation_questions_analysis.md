@@ -1,111 +1,96 @@
-# Evaluation of Adaptation Strategies: Questions Analysis
-## Northeast Military Installation Resilience Review — Energy Infrastructure Focus
+# Evaluation of Strategies Using the MIRR Framework Questions
+## Northeast Florida Military Installation Resilience Review — Energy Infrastructure Focus
 
 ---
 
-## Preface
+## Background
 
-The questions below are drawn from standard resilience and adaptation planning frameworks (e.g., NOAA Climate Resilience Toolkit, DoD Climate Assessment Tool, IPCC AR6 adaptation literature). Each is evaluated for its applicability and utility when applied specifically to **energy infrastructure** at military installations, and recommendations are made for modification where needed.
-
----
-
-## Question-by-Question Analysis
+The NEFRC MIRR uses two overlapping evaluation frameworks: (1) an **8-step Adaptation Planning Approach** that structures how strategies are developed and scored, and (2) five **TAC Discussion Questions** from the February 2026 Technical Advisory Committee meeting that were used to assess mutual support gaps — including energy infrastructure. This analysis evaluates how well both frameworks apply to energy-specific adaptation strategies and recommends modifications where the standard framing misses energy-sector nuance.
 
 ---
 
-### Q1. What are the primary climate and non-climate risks to the asset/system?
+## Part 1: The 8-Step Adaptation Planning Approach
 
-**Applicability to Energy Infrastructure:** High. This is the foundational question and applies directly.
+The MIRR's adaptation process moves through eight steps: start with the mission-critical risk → understand current efforts → develop comprehensive project (RRAP goals) → layer built/natural/social/economic infrastructure improvements → review planning documents for policy updates → identify cross-fenceline coordination opportunities → score on custom metrics for feasibility and risk mitigation → develop implementation timeline and funding/financing toolkit.
 
-**Notes for Energy Context:** Energy infrastructure has both climate risks (flooding, extreme heat, hurricanes) and non-climate risks (aging assets, cyber threats, supply chain disruption, demand growth from electrification) that must be treated with equal rigor. Many resilience frameworks focus narrowly on climate; for energy infrastructure the non-climate threats are often more proximate risks.
+**Assessment for Energy Infrastructure:** The 8-step approach is well suited to energy because it begins with the mission-critical risk (confirmed SPOFs at all four installations) and explicitly requires a funding/financing pathway at Step 8 — critical for energy projects, which often stall for lack of a clear funding vehicle. However, two gaps exist:
 
-**Recommended Modification:** Expand to: *"What are the primary climate-driven AND operational/non-climate risks to the energy system, and how do they interact?"* — this ensures cyber threats, aging infrastructure, and demand surges are not inadvertently excluded.
+- **Step 3 (RRAP Goals)** defaults to physical, natural, social, and economic pillars. Energy infrastructure spans all four but is most easily reduced to "physical infrastructure" — which undersells its social consequence (personnel without power = mission disruption) and economic dimension (utility IGSA renegotiation costs vs. outage costs).
+- **Step 7 (Metrics for Feasibility and Risk Mitigation)** uses custom scoring but does not specify energy-sector metrics such as backup generation rated duration, islanding capability, or fuel storage resupply lead time. Without explicit energy metrics, scoring will default to generic cost/benefit proxies that may underweight mission-critical urgency.
 
----
-
-### Q2. What is the likelihood and consequence of each risk?
-
-**Applicability to Energy Infrastructure:** High. This is the core risk matrix question.
-
-**Notes for Energy Context:** "Consequence" for energy infrastructure should be defined in mission-impact terms, not just economic loss: hours of power interruption, percentage of Tier 1 loads affected, and time-to-restore. Standard consequence scales (low/medium/high) are insufficiently specific unless tied to operational impact thresholds.
-
-**Recommended Modification:** Add a mission-impact dimension: *"What is the likelihood, duration, and mission consequence of each risk event — specifically, which Tier 1 operational loads would be affected and for how long?"*
+**Recommended Modification:** Add energy-specific sub-metrics to Step 7: rated backup duration (hours), percentage of Tier 1 loads on islanded circuits, time-to-restore after substation loss, and fuel supply chain lead time. These are quantifiable and directly reflect the MIRR's own finding that SPOFs are the singular near-term risk.
 
 ---
 
-### Q3. What adaptation strategies exist, and what is their feasibility?
+## Part 2: The Five TAC Discussion Questions (February 2026)
 
-**Applicability to Energy Infrastructure:** High.
-
-**Notes for Energy Context:** Feasibility for military energy infrastructure must account for: (a) DoD procurement timelines (MILCON process can take 5–10 years); (b) regulatory requirements (FERC, NERC CIP, Florida PSC); (c) CUI/security classification of on-installation systems that may limit vendor engagement; and (d) shared-cost opportunities with utilities under ESPC/UESC authorities. "Feasibility" must therefore be evaluated across technical, regulatory, financial, and programmatic dimensions.
-
-**Recommended Modification:** Reframe as: *"What adaptation strategies exist, and what is their feasibility across technical, financial, regulatory, and DoD programmatic dimensions — including relevant funding authorities (MILCON, ESPC, UESC, ESTCP)?"*
+The following questions were posed to the Technical Advisory Committee in February 2026 to assess mutual support gaps. Each is evaluated for applicability to energy infrastructure and recommendations are provided.
 
 ---
 
-### Q4. What are the co-benefits and trade-offs of each adaptation strategy?
+### Question 1: Does the TPO have an opportunity to further address transportation resilience priorities (as highlighted in the VA) across installations through their coordinated planning role?
 
-**Applicability to Energy Infrastructure:** High, but context-specific.
+**Energy Relevance:** Indirect but real. Utility restoration crews depend on the same road corridors identified as SPOFs in the VA (A1A for NS Mayport, Heckscher Drive for Blount Island, Roosevelt Blvd/US-17 for NAS JAX, SR-16 for Camp Blanding). If those corridors flood or fail, power restoration timelines extend regardless of substation condition.
 
-**Notes for Energy Context:** Energy infrastructure adaptations often have significant co-benefits beyond resilience: on-installation renewables reduce utility costs, improve air quality, and advance DoD net-zero goals. Trade-offs are also energy-specific: microgrids that island during emergencies may create grid stability challenges for the utility during reconnection; hardening above-ground infrastructure may conflict with utility undergrounding plans.
+**Assessment:** The question is framed around transportation planning coordination, not energy. It will not surface energy-specific restoration access issues without modification.
 
-**Recommended Modification:** No change needed, but ensure the evaluation rubric includes: carbon/emissions reduction, utility cost savings, grid stability impacts (reconnection dynamics), and alignment with DoD net-zero 2030/2045 targets.
-
----
-
-### Q5. What is the timeframe for implementing each strategy?
-
-**Applicability to Energy Infrastructure:** High.
-
-**Notes for Energy Context:** Energy infrastructure timelines are often constrained by procurement and permitting processes that exceed the urgency of the risk. A substation hardening project may take 3–5 years to design, permit, and construct — but the next major hurricane could arrive in year 1. The question should surface "bridging" near-term measures (portable generators, deployable barriers) alongside permanent strategies.
-
-**Recommended Modification:** Add: *"What near-term bridging measures can be deployed in 0–12 months while permanent solutions are developed?"*
+**Recommended Modification:** Add: *"Does the TPO's resilience planning account for utility restoration crew access routes to installation substations during and after hazard events? Are these corridors included in priority recovery routing?"*
 
 ---
 
-### Q6. Who are the key stakeholders and what are their roles?
+### Question 2: Would there be interest in reactivating regional housing coordination?
 
-**Applicability to Energy Infrastructure:** High, but underweighted in most frameworks.
+**Energy Relevance:** Low direct relevance to energy infrastructure reliability. Personnel housing affects workforce retention and post-event reporting times, which have indirect effects on operational continuity, but this does not translate into a meaningful energy adaptation strategy.
 
-**Notes for Energy Context:** Energy infrastructure adaptation at military installations involves a uniquely complex stakeholder landscape: installation DPW/energy managers, NAVFAC/AFCEC regional commands, JEA/FPL utility operations and regulatory teams, FERC/NERC compliance staff, Florida PSC, FEMA (for BRIC/BEAD funding), and DoE (for Grid Resilience formula grants under BIL). Missing any of these stakeholders in planning produces plans that fail at implementation.
+**Assessment:** This question should not be modified for energy purposes — it addresses a real regional gap (housing affordability) but is not an energy infrastructure question. When evaluating energy strategies specifically, this question can be set aside.
 
-**Recommended Modification:** Expand to explicitly include utility regulatory bodies, federal grant program offices, and distinguish between *decision authority* (who can approve spending) and *technical expertise* (who designs the solution).
-
----
-
-### Q7. What monitoring and evaluation indicators should be tracked?
-
-**Applicability to Energy Infrastructure:** High.
-
-**Notes for Energy Context:** Standard resilience monitoring frameworks track narrative progress ("strategy under development"). For energy infrastructure, quantitative metrics are available and should be required: backup generation hours of coverage, microgrid islanding test frequency, substation flood exposure score (updated annually with LiDAR), percentage of Tier 1 loads on islanded circuits, and EIA-417 outage event duration trending.
-
-**Recommended Modification:** Specify quantitative energy-sector indicators: *"Track: backup generation rated duration (hrs), % Tier 1 loads on islanded circuits, annual substation flood inundation depth under 1% AEP event, EIA-417 outage frequency and duration trends, fuel storage resupply lead time."*
+**Recommended Modification:** No modification needed for energy context. Note in white paper that housing and energy infrastructure are separate tracks within the MIRR adaptation framework.
 
 ---
 
-### Q8. How does this strategy align with existing plans, policies, and investments?
+### Question 3: What opportunities exist to formalize/institutionalize existing informal working relationships across jurisdictional boundaries?
 
-**Applicability to Energy Infrastructure:** High.
+**Energy Relevance:** High. The MIRR mutual support assessment found that utility O&M IGSAs exist at NAS JAX and NS Mayport with JEA, but none extend to resilience or redundancy. Camp Blanding has no formal coordination with FPL at all. These are precisely the informal or incomplete relationships this question targets.
 
-**Notes for Energy Context:** Energy-specific plans that should be cross-referenced include: Installation Energy Plans (IEPs), the DoD Climate Adaptation Plan, NAVFAC/AFCEC Regional Infrastructure Plans, Florida State Hazard Mitigation Plan (SHMP), local county HMPs (Duval, Clay), JEA Integrated Resource Plan (IRP), and FPL Storm Hardening Plan (filed with Florida PSC). Without explicit alignment checks against these documents, adaptation strategies risk duplicating effort or conflicting with utility investment timelines.
+**Assessment:** The question is broadly applicable but needs energy-sector grounding to produce actionable results. Without naming utilities and resilience scope explicitly, stakeholders may discuss emergency services agreements rather than utility coordination.
 
-**Recommended Modification:** Reference the specific plan suite: *"How does this strategy align with the Installation Energy Plan, utility IRP/Storm Hardening filings, county SHMP, and DoD Climate Adaptation Plan?"*
+**Recommended Modification:** Reframe as: *"What opportunities exist to formalize utility coordination — specifically expanding JEA IGSAs at NAS JAX and NS Mayport to include resilience and redundancy provisions, and establishing a baseline coordination framework between Camp Blanding and FPL?"* This matches Regional Recommendation R-2 directly.
 
 ---
 
-## Summary: Recommended Question Modifications
+### Question 4: Beyond operations and maintenance, are there active, ongoing discussions with utilities (JEA and FPL) on infrastructure resilience or redundancy? Are these at the project scale or the system scale?
 
-| # | Issue | Recommended Change |
+**Energy Relevance:** This is the most directly applicable question to energy infrastructure in the entire MIRR evaluation framework. It precisely targets the confirmed gap: utility IGSAs cover O&M only, not resilience.
+
+**Assessment:** The question is well framed and should be retained as-is. It correctly distinguishes between *project-scale* coordination (a single substation hardening project) and *system-scale* coordination (a regional grid resilience agreement covering all four installations). The latter is the goal.
+
+**Why it should NOT be modified:** The existing phrasing already probes the right distinction. Modifying it risks narrowing the scope when the open-ended form is an asset — it allows stakeholders to surface coordination efforts the team may not know about.
+
+**Recommended Addition:** A follow-on question: *"If coordination exists at the project scale only, what would be required to elevate it to the system scale — e.g., a regional utility resilience MOU or an expanded IGSA scope?"*
+
+---
+
+### Question 5: Discuss opportunities for Army Corps and Duval County shoreline protection efforts coordination informed by installation needs and vulnerability. Is there ongoing coordination? How can it be enhanced?
+
+**Energy Relevance:** Moderate. The MIRR white paper on shoreline resilience (Feb 2026 TAC) confirmed that NS Mayport's central canal along Perimeter Road, Blount Island's northwest armored shoreline, and the Roosevelt Boulevard bridge scour risk at NAS JAX are all priority sites. Substation flood exposure at NS Mayport is directly tied to the shoreline/surge inundation pathway — protecting the shoreline protects the substation.
+
+**Assessment:** The question captures shoreline-energy co-benefits implicitly, but the energy dimension is invisible unless it is named. Shoreline protection discussions will default to ecological and structural framing without prompting.
+
+**Recommended Modification:** Add: *"How do shoreline protection efforts specifically reduce flood and surge exposure to energy infrastructure — including the JEA Mayport Substation and electrical systems at Blount Island — and how can energy resilience be included as an explicit co-benefit in shoreline project scoping?"*
+
+---
+
+## Summary of Recommendations
+
+| Question | Energy Applicability | Recommended Action |
 |---|---|---|
-| Q1 | Misses non-climate risks | Add cyber, aging, demand growth |
-| Q2 | Consequence scale too generic | Tie to mission-impact (Tier 1 load, outage duration) |
-| Q3 | Feasibility underdefined | Add regulatory, DoD programmatic, and funding authority dimensions |
-| Q4 | No change needed | Ensure rubric covers carbon, cost savings, grid stability |
-| Q5 | Misses bridging strategies | Add near-term (0–12 month) interim measures |
-| Q6 | Stakeholder list too narrow | Include utility regulators, federal grant program offices |
-| Q7 | Qualitative tracking insufficient | Specify quantitative energy-sector metrics |
-| Q8 | Plan references generic | List specific IEP, IRP, SHMP, PSC filing alignments |
+| Q1 (TPO transportation) | Indirect | Add utility restoration access route question |
+| Q2 (Housing) | Low | Set aside for energy track; no modification |
+| Q3 (Formalize relationships) | High | Name utilities and resilience scope explicitly |
+| Q4 (Utility discussions) | **Directly applicable** | Retain as-is; add system-scale follow-on |
+| Q5 (Shoreline coordination) | Moderate | Add substation flood co-benefit framing |
+| Step 7 (Metrics) | Gap | Add energy-specific quantitative sub-metrics |
 
 ---
 
-*Prepared for the Northeast Military Installation Resilience Review | May 2026*
+*Sources: NEFRC MIRR Feb 2026 TAC Presentation; April 2026 Steering Committee Adaptation Framework; Jan 2026 SC Vulnerability Assessment Results; MIRR Mutual Support Assessment*
