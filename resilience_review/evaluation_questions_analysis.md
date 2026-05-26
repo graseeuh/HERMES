@@ -1,96 +1,119 @@
-# Evaluation of Strategies Using the MIRR Framework Questions
-## Northeast Florida Military Installation Resilience Review — Energy Infrastructure Focus
+# Evaluation of Energy Reliability Adaptation Strategies
+## Northeast Florida Military Installation Resilience Review — APTIM Framework Application
+**Naval Air Station Jacksonville | Naval Station Mayport | MCSF Blount Island | Camp Blanding JTF**
 
 ---
 
 ## Background
 
-The NEFRC MIRR uses two overlapping evaluation frameworks: (1) an **8-step Adaptation Planning Approach** that structures how strategies are developed and scored, and (2) five **TAC Discussion Questions** from the February 2026 Technical Advisory Committee meeting that were used to assess mutual support gaps — including energy infrastructure. This analysis evaluates how well both frameworks apply to energy-specific adaptation strategies and recommends modifications where the standard framing misses energy-sector nuance.
+This analysis applies the evaluation framework presented in the APTIM memo *NE MIRR: Evaluating Potential Adaptation Solutions: Quantitative and Qualitative Comparison of Alternatives* (May 22, 2026) to energy reliability adaptation strategies for the four NEFRC MIRR installations. The APTIM framework uses two evaluation tools: (1) a **two-step screening approach** that identifies the regional system problem before scoring strategies, and (2) a **1–5 comparative scoring scale** applied across three criteria — operational value, implementation feasibility, and long-term durability — for four strategy types: Protect, Accommodate, Avoidance/Relocation, and Regional Collaboration.
+
+Per the APTIM memo (Section 3): *"Quantitative screening values are assigned on a relative scale from 1 to 5 for operational value, implementation feasibility, and long-term durability. These values are intended to support comparison of adaptation approaches and discussion among implementation partners and topical workgroups rather than establish final project rankings or benefit-cost results."*
 
 ---
 
-## Part 1: The 8-Step Adaptation Planning Approach
+## Part 1: Two-Step Screen Applied to Energy Infrastructure
 
-The MIRR's adaptation process moves through eight steps: start with the mission-critical risk → understand current efforts → develop comprehensive project (RRAP goals) → layer built/natural/social/economic infrastructure improvements → review planning documents for policy updates → identify cross-fenceline coordination opportunities → score on custom metrics for feasibility and risk mitigation → develop implementation timeline and funding/financing toolkit.
+The APTIM memo (Section 6) recommends a two-step screen before comparing strategies. Applied to energy infrastructure at the four MIRR installations:
 
-**Assessment for Energy Infrastructure:** The 8-step approach is well suited to energy because it begins with the mission-critical risk (confirmed SPOFs at all four installations) and explicitly requires a funding/financing pathway at Step 8 — critical for energy projects, which often stall for lack of a clear funding vehicle. However, two gaps exist:
+**Step 1 — Identify the Regional System Problem.** For energy, the confirmed regional system problem is **utility dependency and single points of failure**: all four installations rely on a single electrical substation with no backup supply path, and utility IGSAs at NAS JAX and NS Mayport cover only O&M, not resilience or redundancy (MIRR VA, Jan 2026 SC). The APTIM memo (Section 3.2) confirms that *"utility and fuel resilience strategies consistently provide some of the highest operational value across all Northeast Florida installations because failures in these systems often create cascading disruptions affecting transportation, communications, wastewater, emergency response, and installation operations simultaneously."*
 
-- **Step 3 (RRAP Goals)** defaults to physical, natural, social, and economic pillars. Energy infrastructure spans all four but is most easily reduced to "physical infrastructure" — which undersells its social consequence (personnel without power = mission disruption) and economic dimension (utility IGSA renegotiation costs vs. outage costs).
-- **Step 7 (Metrics for Feasibility and Risk Mitigation)** uses custom scoring but does not specify energy-sector metrics such as backup generation rated duration, islanding capability, or fuel storage resupply lead time. Without explicit energy metrics, scoring will default to generic cost/benefit proxies that may underweight mission-critical urgency.
-
-**Recommended Modification:** Add energy-specific sub-metrics to Step 7: rated backup duration (hours), percentage of Tier 1 loads on islanded circuits, time-to-restore after substation loss, and fuel supply chain lead time. These are quantifiable and directly reflect the MIRR's own finding that SPOFs are the singular near-term risk.
+**Step 2 — Compare the four strategy types** using the 1–5 scoring criteria, as applied to energy infrastructure in Section 3.2 and Sections 5–6 of the APTIM memo.
 
 ---
 
-## Part 2: The Five TAC Discussion Questions (February 2026)
+## Part 2: Strategy Type Scoring — Energy Infrastructure Focus
 
-The following questions were posed to the Technical Advisory Committee in February 2026 to assess mutual support gaps. Each is evaluated for applicability to energy infrastructure and recommendations are provided.
+### Strategy Type 1: Protect
+*Physical hardening of energy infrastructure — substation floodproofing, dry-type transformer installation, flood barriers, distribution line undergrounding, transmission corridor hardening.*
 
----
+**Operational Value: High (4–5).** The APTIM memo (Section 3.2) states: *"Floodproofing substations, pump stations, communications systems, and fuel infrastructure may provide greater mission continuity benefits per dollar than some large-scale shoreline protection projects because these systems support many dependent functions."* Protective strategies score particularly high where utility and fuel systems represent operational enabling infrastructure — which applies to all four MIRR installations. At NS Mayport specifically, the JEA Mayport Substation flood exposure is the highest-urgency energy risk in the region (MIRR VA, Jan 2026 SC: High risk / Immediate urgency); protective hardening directly addresses the confirmed threat.
 
-### Question 1: Does the TPO have an opportunity to further address transportation resilience priorities (as highlighted in the VA) across installations through their coordinated planning role?
+**Implementation Feasibility: Medium (3).** Protective measures for substations require JEA and FPL cooperation as the asset owners. At NS Mayport, the JEA Mayport Substation is located south of base on JEA-owned property — hardening depends on the IGSA expansion recommended under MIRR R-2. At Camp Blanding, the FPL substation hardening would require FPSC Storm Hardening coordination. The P035 Dual Fuel Generator Project at Blount Island (ERCIP funded, Final Design Authority underway) represents the strongest near-term protective measure currently on track. Distribution line undergrounding — noted by the other intern as a cost-effective protective strategy — is feasible in targeted segments but faces cost constraints at scale.
 
-**Energy Relevance:** Indirect but real. Utility restoration crews depend on the same road corridors identified as SPOFs in the VA (A1A for NS Mayport, Heckscher Drive for Blount Island, Roosevelt Blvd/US-17 for NAS JAX, SR-16 for Camp Blanding). If those corridors flood or fail, power restoration timelines extend regardless of substation condition.
-
-**Assessment:** The question is framed around transportation planning coordination, not energy. It will not surface energy-specific restoration access issues without modification.
-
-**Recommended Modification:** Add: *"Does the TPO's resilience planning account for utility restoration crew access routes to installation substations during and after hazard events? Are these corridors included in priority recovery routing?"*
+**Long-Term Durability: Medium (3).** Protective measures at fixed substation locations may lose effectiveness if surrounding flood conditions worsen with sea level rise, compound flooding (2070 scenario), or intensified surge. The APTIM memo (Section 3.2) notes that relocation of selected utility nodes may provide stronger durability than in-place hardening where flood exposure is expected to increase. Substation floodproofing is a durable near-term measure; it does not resolve the single-substation dependency.
 
 ---
 
-### Question 2: Would there be interest in reactivating regional housing coordination?
+### Strategy Type 2: Accommodate
+*Operational adjustments that allow continued function under constrained grid conditions — backup generators, automated transfer switches, demand management, fuel pre-positioning, operational protocols during outages.*
 
-**Energy Relevance:** Low direct relevance to energy infrastructure reliability. Personnel housing affects workforce retention and post-event reporting times, which have indirect effects on operational continuity, but this does not translate into a meaningful energy adaptation strategy.
+**Operational Value: Medium (3).** Accommodation strategies — backup generation, generator pre-positioning, fuel storage — provide direct mission continuity during outages without resolving the underlying SPOF. The MIRR evaluation confirms backup generation as a standard strategy: the P035 project at Blount Island will install generators in all nine critical facilities; the MIRR framework also cites automated transfer switches as an example strategy (April 2026 SC). However, accommodation does not reduce vulnerability — it manages consequences after a SPOF failure has already occurred.
 
-**Assessment:** This question should not be modified for energy purposes — it addresses a real regional gap (housing affordability) but is not an energy infrastructure question. When evaluating energy strategies specifically, this question can be set aside.
+**Implementation Feasibility: High (4).** Backup generation is the most immediately feasible strategy across all four installations. ERCIP funding has already been approved for Blount Island's P035; ESPC and UESC authorities provide procurement vehicles for similar projects at NAS JAX and NS Mayport. Automated transfer switches and microgrid-ready electrical infrastructure are well within current NAVFAC project scopes.
 
-**Recommended Modification:** No modification needed for energy context. Note in white paper that housing and energy infrastructure are separate tracks within the MIRR adaptation framework.
-
----
-
-### Question 3: What opportunities exist to formalize/institutionalize existing informal working relationships across jurisdictional boundaries?
-
-**Energy Relevance:** High. The MIRR mutual support assessment found that utility O&M IGSAs exist at NAS JAX and NS Mayport with JEA, but none extend to resilience or redundancy. Camp Blanding has no formal coordination with FPL at all. These are precisely the informal or incomplete relationships this question targets.
-
-**Assessment:** The question is broadly applicable but needs energy-sector grounding to produce actionable results. Without naming utilities and resilience scope explicitly, stakeholders may discuss emergency services agreements rather than utility coordination.
-
-**Recommended Modification:** Reframe as: *"What opportunities exist to formalize utility coordination — specifically expanding JEA IGSAs at NAS JAX and NS Mayport to include resilience and redundancy provisions, and establishing a baseline coordination framework between Camp Blanding and FPL?"* This matches Regional Recommendation R-2 directly.
+**Long-Term Durability: Medium-Low (2–3).** Accommodation strategies depend on fuel supply chains that are themselves vulnerable. The APTIM memo (Section 3.2) flags that *"backup generators may support critical facilities during outages but remain dependent on fuel delivery routes that are vulnerable to flooding or storm damage."* Extended grid outages (multi-day post-hurricane scenarios) test fuel resupply logistics, particularly at Camp Blanding where Black Creek flooding can close surrounding roadways even in tropical storm conditions.
 
 ---
 
-### Question 4: Beyond operations and maintenance, are there active, ongoing discussions with utilities (JEA and FPL) on infrastructure resilience or redundancy? Are these at the project scale or the system scale?
+### Strategy Type 3: Avoidance / Relocation
+*Reducing long-term dependence on vulnerable locations by relocating critical utility nodes, creating alternative supply paths, or routing new loads away from exposed infrastructure.*
 
-**Energy Relevance:** This is the most directly applicable question to energy infrastructure in the entire MIRR evaluation framework. It precisely targets the confirmed gap: utility IGSAs cover O&M only, not resilience.
+**Operational Value: Medium-Low initially → High long-term (2 → 4–5).** Relocation of the JEA Mayport Substation — the highest-urgency energy risk in the region — or establishment of a dedicated redundant transmission feed from a different grid injection point would permanently eliminate the SPOF. The APTIM memo (Section 3.2) states: *"Relocation of selected utility nodes or critical fuel systems may provide the strongest long-term durability where repetitive flooding, shoreline exposure, and utility vulnerabilities are expected to increase."* At Camp Blanding, new utility-scale solar under Enhanced Use Lease (EUL) authority would reduce dependence on the FPL distribution corridor exposed to wildfire.
 
-**Assessment:** The question is well framed and should be retained as-is. It correctly distinguishes between *project-scale* coordination (a single substation hardening project) and *system-scale* coordination (a regional grid resilience agreement covering all four installations). The latter is the goal.
+**Implementation Feasibility: Low (1–2).** Relocating or supplementing a JEA substation requires capital investment outside MILCON authority, depends on JEA planning cycles and rate base decisions, and has no established funding mechanism. This is a multi-year, multi-agency undertaking. Camp Blanding's EUL solar path is more feasible given land availability and ESTCP/ESPC vehicles, but still requires a multi-year development cycle.
 
-**Why it should NOT be modified:** The existing phrasing already probes the right distinction. Modifying it risks narrowing the scope when the open-ended form is an asset — it allows stakeholders to surface coordination efforts the team may not know about.
-
-**Recommended Addition:** A follow-on question: *"If coordination exists at the project scale only, what would be required to elevate it to the system scale — e.g., a regional utility resilience MOU or an expanded IGSA scope?"*
-
----
-
-### Question 5: Discuss opportunities for Army Corps and Duval County shoreline protection efforts coordination informed by installation needs and vulnerability. Is there ongoing coordination? How can it be enhanced?
-
-**Energy Relevance:** Moderate. The MIRR white paper on shoreline resilience (Feb 2026 TAC) confirmed that NS Mayport's central canal along Perimeter Road, Blount Island's northwest armored shoreline, and the Roosevelt Boulevard bridge scour risk at NAS JAX are all priority sites. Substation flood exposure at NS Mayport is directly tied to the shoreline/surge inundation pathway — protecting the shoreline protects the substation.
-
-**Assessment:** The question captures shoreline-energy co-benefits implicitly, but the energy dimension is invisible unless it is named. Shoreline protection discussions will default to ecological and structural framing without prompting.
-
-**Recommended Modification:** Add: *"How do shoreline protection efforts specifically reduce flood and surge exposure to energy infrastructure — including the JEA Mayport Substation and electrical systems at Blount Island — and how can energy resilience be included as an explicit co-benefit in shoreline project scoping?"*
+**Long-Term Durability: High (5).** Once a redundant supply path or relocated substation is in place, the SPOF is resolved and the strategy's value is permanent and does not degrade with worsening flood or fire conditions.
 
 ---
 
-## Summary of Recommendations
+### Strategy Type 4: Regional Collaboration
+*Coordinated investments across jurisdictions and utility providers — IGSA expansion, utility resilience MOUs, FPSC Storm Hardening coordination, JEA/FPL/Seminole Electric/CCUA coordination frameworks.*
 
-| Question | Energy Applicability | Recommended Action |
-|---|---|---|
-| Q1 (TPO transportation) | Indirect | Add utility restoration access route question |
-| Q2 (Housing) | Low | Set aside for energy track; no modification |
-| Q3 (Formalize relationships) | High | Name utilities and resilience scope explicitly |
-| Q4 (Utility discussions) | **Directly applicable** | Retain as-is; add system-scale follow-on |
-| Q5 (Shoreline coordination) | Moderate | Add substation flood co-benefit framing |
-| Step 7 (Metrics) | Gap | Add energy-specific quantitative sub-metrics |
+**Operational Value: High (4–5).** The APTIM memo (Section 3.2) identifies regional collaboration as the highest-value long-term strategy for utility infrastructure: *"regional collaboration strategies score highest because utility restoration capability, redundancy, and mutual aid systems function regionally rather than at the installation scale."* And further: *"long-term mission continuity will likely depend more on coordinated regional infrastructure performance than protection of isolated facilities."* MIRR Regional Recommendation R-2 operationalizes this: expand JEA IGSAs to include resilience provisions, establish FPL coordination for Camp Blanding, and engage FPSC Storm Hardening reporting.
+
+**Implementation Feasibility: Medium (3).** IGSA expansion is an administrative action requiring no new capital and builds on existing JEA-installation relationships. It is the highest-leverage near-term action identified in both the MIRR process and the APTIM framework. Multi-utility coordination (JEA, FPL, Seminole Electric, CCUA, TECO) is more complex and requires a regional convening authority — NEFRC is positioned to provide this through the MIRR implementation structure.
+
+**Long-Term Durability: High (4–5).** Regional collaboration frameworks, once established, are self-reinforcing: data-sharing provisions in expanded IGSAs enable coordinated capital planning, which enables redundancy investments that reduce future vulnerability. The APTIM memo (Section 6) explicitly recommends that *"future MIRR adaptation evaluation should compare solutions based on regional system performance, not only individual project feasibility."*
 
 ---
 
-*Sources: NEFRC MIRR Feb 2026 TAC Presentation; April 2026 Steering Committee Adaptation Framework; Jan 2026 SC Vulnerability Assessment Results; MIRR Mutual Support Assessment*
+## Part 3: Summary Score Table — Energy Infrastructure
+
+| Strategy Type | Operational Value | Implementation Feasibility | Long-Term Durability | Energy Infrastructure Notes |
+|---|---|---|---|---|
+| **Protect** | 4–5 | 3 | 3 | Highest near-term value; substation hardening, P035, undergrounding |
+| **Accommodate** | 3 | 4 | 2–3 | Feasible immediately; backup gen limited by fuel supply chains |
+| **Avoidance/Relocation** | 2→5 | 1–2 | 5 | Most durable long-term; lowest near-term feasibility |
+| **Regional Collaboration** | 4–5 | 3 | 4–5 | **Highest combined score**; IGSA expansion is the priority action |
+
+*Scores based on APTIM memo Section 3.2 (utility/infrastructure evaluation) and Section 6 recommendations. Scale: 1 = Low, 5 = High.*
+
+**Key APTIM finding (Section 3.2):** *"utility restoration timelines and fuel delivery continuity may ultimately affect operational recovery more than flood depth at individual facilities."*
+
+---
+
+## Part 4: Installation-Specific Strategy Emphasis
+
+The APTIM memo (Section 6) provides installation-specific emphasis for future adaptation evaluation. Applied to energy infrastructure:
+
+**Naval Station Mayport** — APTIM recommends *"transportation access, SR A1A resilience, shoreline protection where necessary, and regional evacuation/access redundancy."* For energy: the JEA Mayport Substation flood exposure is the singular highest-urgency risk (High / Immediate, MIRR VA). Protective strategies (substation hardening, flood barriers) combined with regional collaboration (expanded IGSA) apply directly. Shoreline protection at NS Mayport has direct energy co-benefits: surge inundation pathways to the substation are reduced by coastal hardening.
+
+**MCSF Blount Island** — APTIM recommends *"port resilience, fuel redundancy, utility hardening, and logistics continuity."* For energy: P035 Dual Fuel Generator Project is the funded near-term protective strategy; regional logistics continuity (fuel pre-positioning, restoration crew access via Heckscher Drive) is a watch condition. APTIM (Section 3.2) notes that for Blount Island specifically, *"regional collaboration strategies involving transportation agencies, utilities, port operators, and emergency management organizations appear likely to provide greater benefits than isolated roadway protection projects."*
+
+**Naval Air Station Jacksonville** — APTIM recommends *"accommodation, drainage, controlled flooding of non-critical areas, utility protection, and groundwater/contamination awareness."* For energy: the JEA-initiated microgrid feasibility study is an accommodation/protect hybrid strategy. Accommodation framing (operating around predictable constraints) applies while the microgrid study develops toward a funded implementation.
+
+**Camp Blanding JTF** — APTIM recommends *"water supply, heat, wildfire, utility reliability, and avoiding new critical dependencies in exposed or service-limited areas."* For energy: the FPL substation (High / Near-Term risk) sits in a wildfire-exposed transmission corridor. Avoidance/relocation strategy (EUL solar + BESS) aligns with APTIM's durability emphasis for Camp Blanding, while prescribed fire programs for wildfire fuel management along transmission corridors provide a near-term protective measure.
+
+---
+
+## Part 5: Watch Conditions for Energy Systems
+
+The APTIM memo (Section 6) establishes "watch conditions" that should trigger re-evaluation or escalation. For utility and fuel systems specifically, the memo recommends tracking:
+
+- **Outage duration** — duration of grid-dependent power outages at each installation
+- **Restoration time** — time from SPOF event to full power restoration
+- **Backup duration** — rated capacity of backup generation systems vs. actual demand under extended outage scenarios
+- **Single points of failure** — changes in SPOF status (addition, elimination, or change in risk rating)
+
+These watch conditions should be reviewed periodically with JEA, FPL, Seminole Electric, and installation DPW representatives as part of the MIRR implementation framework. A trigger-based adaptation trigger for utility systems would be: if post-event restoration time exceeds an acceptable mission downtime threshold, this triggers escalation to system-scale coordination (APTIM Section 5.2).
+
+---
+
+## Part 6: TAC Discussion Questions — Energy Intersection
+
+The February 2026 TAC discussion questions remain relevant as the process-level counterpart to the APTIM strategic framework. Question 4 — *"Beyond operations and maintenance, are there active, ongoing discussions with utilities (JEA and FPL) on infrastructure resilience or redundancy? Are these at the project scale or the system scale?"* — directly probes whether the Regional Collaboration strategy identified by APTIM as the highest-scoring approach is currently being implemented. The TAC answer at present is no: utility IGSAs cover O&M only, coordination is at the project scale at best, and no system-scale framework exists. This gap is what MIRR Regional Recommendation R-2 is designed to close.
+
+---
+
+*Sources: APTIM memo, NE MIRR: Evaluating Potential Adaptation Solutions (May 22, 2026, Sections 2, 3.2, 5–6); NEFRC MIRR Vulnerability Assessment (Jan 2026 SC); MIRR Mutual Support Assessment (Feb 2026 TAC); MIRR Adaptation Planning Framework (April 2026 SC); MCSF Blount Island Kickoff Briefing (April 2025)*
