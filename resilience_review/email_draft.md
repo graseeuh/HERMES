@@ -37,6 +37,13 @@ Reproducible methodology using the MIRR's confirmed data sources: NEFRC CDBG flo
 
 ---
 
+**5. Mission-Critical Risk Analysis (Supplementary)**
+`resilience_review/mission_critical_risk_analysis.md`
+
+An expanded strategic context document developed beyond the original four deliverables. Frames the core finding as an **energy risk management problem** (not an efficiency problem), maps the full flood-transportation-energy-mission cascade mechanism, and walks through each installation's strategic mission and specific vulnerability under that cascade. Covers NS Mayport (4th Fleet shore power and sortie operations), NAS JAX (P-8 maritime patrol and Atlantic surveillance), MCSF Blount Island (Marine Corps 72-hour prepositioning capability), and Camp Blanding (National Guard mobilization). Closes with an "Areas to Explore Further" section covering tidal energy feasibility at Mayport/Blount Island and Solar PV + BESS at Camp Blanding — clearly labeled as exploratory. All strategic claims grounded in public DoD documents and confirmed MIRR findings.
+
+---
+
 Please let me know if any section needs adjustment before Monday.
 
 Best,
