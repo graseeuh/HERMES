@@ -9,11 +9,25 @@ doc = Document()
 for section in doc.sections:
     section.top_margin    = Inches(1)
     section.bottom_margin = Inches(1)
-    section.left_margin   = Inches(1.25)
-    section.right_margin  = Inches(1.25)
+    section.left_margin   = Inches(1.2)
+    section.right_margin  = Inches(1.2)
 
-# ── helpers ───────────────────────────────────────────────────────────────────
-def font(run, size=11, bold=False, italic=False, color=None):
+# ── Palette ───────────────────────────────────────────────────────────────────
+NAVY       = (31,  73,  125)
+SLATE      = (55,  96,  146)
+GRAY       = (89,  89,  89)
+BLACK      = (0,   0,   0)
+GREEN_D    = (0,   97,  0)
+AMBER_D    = (102, 51,  0)
+RED_D      = (120, 0,   0)
+WHITE      = (255, 255, 255)
+
+TAG_CONFIRMED = "● Confirmed"
+TAG_GIS       = "◐ Pending GIS"
+TAG_VERIFY    = "○ Needs verification"
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def font(run, size=10.5, bold=False, italic=False, color=None):
     run.font.name = "Calibri"
     run.font.size = Pt(size)
     run.bold   = bold
@@ -21,102 +35,8 @@ def font(run, size=11, bold=False, italic=False, color=None):
     if color:
         run.font.color.rgb = RGBColor(*color)
 
-def heading(text, level=1):
-    p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(14 if level == 1 else 8)
-    p.paragraph_format.space_after  = Pt(4)
-    run = p.add_run(text)
-    if level == 1:
-        font(run, size=13, bold=True, color=(31, 73, 125))
-    elif level == 2:
-        font(run, size=11, bold=True, color=(55, 96, 146))
-    else:
-        font(run, size=11, bold=True, italic=True)
-
-def body(text, space_after=6, italic=False, color=None):
-    p = doc.add_paragraph()
-    p.paragraph_format.space_after = Pt(space_after)
-    run = p.add_run(text)
-    font(run, italic=italic, color=color)
-    return p
-
-def note(text, kind="GIS"):
-    colors = {
-        "GIS":      ("FFF4E5", (102, 51, 0)),
-        "verify":   ("FFF0F0", (120, 0,  0)),
-        "confirmed":("EAF4EA", (0,  80, 0)),
-    }
-    fill, tc = colors.get(kind, colors["GIS"])
-    p = doc.add_paragraph()
-    p.paragraph_format.left_indent  = Inches(0.3)
-    p.paragraph_format.right_indent = Inches(0.3)
-    p.paragraph_format.space_after  = Pt(6)
-    shd = OxmlElement("w:shd")
-    shd.set(qn("w:val"),   "clear")
-    shd.set(qn("w:color"), "auto")
-    shd.set(qn("w:fill"),  fill)
-    p._p.get_or_add_pPr().append(shd)
-    labels = {"GIS": "Needs GIS: ", "verify": "Needs verification: ",
-              "confirmed": "Confirmed: "}
-    r1 = p.add_run(labels.get(kind, "Note: "))
-    font(r1, size=10, bold=True, color=tc)
-    r2 = p.add_run(text)
-    font(r2, size=10, italic=True, color=tc)
-
-def quote(text, source):
-    p = doc.add_paragraph()
-    p.paragraph_format.left_indent = Inches(0.4)
-    p.paragraph_format.space_after = Pt(6)
-    r1 = p.add_run(f'"{text}"')
-    font(r1, italic=True, color=(64, 64, 64))
-    r2 = p.add_run(f"\n— {source}")
-    font(r2, size=9.5, italic=True, color=(127, 127, 127))
-
-def bullet(text, indent=0):
-    p = doc.add_paragraph(style="List Bullet")
-    p.paragraph_format.left_indent = Inches(0.25 + indent * 0.2)
-    p.paragraph_format.space_after = Pt(3)
-    run = p.add_run(text)
-    font(run)
-
-def mixed(label, rest, indent=0):
-    p = doc.add_paragraph(style="List Bullet")
-    p.paragraph_format.space_after = Pt(4)
-    p.paragraph_format.left_indent = Inches(0.25 + indent * 0.2)
-    r1 = p.add_run(label)
-    font(r1, bold=True)
-    r2 = p.add_run(rest)
-    font(r2)
-
-def divider(label, fill="1F497D"):
-    p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(16)
-    p.paragraph_format.space_after  = Pt(4)
-    shd = OxmlElement("w:shd")
-    shd.set(qn("w:val"),   "clear")
-    shd.set(qn("w:color"), "auto")
-    shd.set(qn("w:fill"),  fill)
-    p._p.get_or_add_pPr().append(shd)
-    run = p.add_run(f"  {label}")
-    font(run, size=12, bold=True, color=(255, 255, 255))
-
-def shaded_box(label, text, fill="EAF0F8", tc=(31, 73, 125)):
-    p = doc.add_paragraph()
-    p.paragraph_format.left_indent  = Inches(0.3)
-    p.paragraph_format.right_indent = Inches(0.3)
-    p.paragraph_format.space_after  = Pt(10)
-    shd = OxmlElement("w:shd")
-    shd.set(qn("w:val"),   "clear")
-    shd.set(qn("w:color"), "auto")
-    shd.set(qn("w:fill"),  fill)
-    p._p.get_or_add_pPr().append(shd)
-    r1 = p.add_run(label + "\n")
-    font(r1, size=10, bold=True, color=tc)
-    r2 = p.add_run(text)
-    font(r2, size=10, italic=True, color=tc)
-
 def centered(text, size=11, bold=False, italic=False,
-             color=(0,0,0), space_before=0, space_after=4):
+             color=BLACK, space_before=0, space_after=4):
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_before = Pt(space_before)
@@ -124,56 +44,171 @@ def centered(text, size=11, bold=False, italic=False,
     run = p.add_run(text)
     font(run, size=size, bold=bold, italic=italic, color=color)
 
+def h1(text):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(16)
+    p.paragraph_format.space_after  = Pt(2)
+    # thin top rule via bottom border on preceding empty para would be complex;
+    # use bold navy with a light rule feel via spacing
+    run = p.add_run(text.upper())
+    font(run, size=11, bold=True, color=NAVY)
+    # add bottom border to paragraph
+    pPr = p._p.get_or_add_pPr()
+    pBdr = OxmlElement("w:pBdr")
+    bottom = OxmlElement("w:bottom")
+    bottom.set(qn("w:val"),   "single")
+    bottom.set(qn("w:sz"),    "4")
+    bottom.set(qn("w:space"), "1")
+    bottom.set(qn("w:color"), "1F497D")
+    pBdr.append(bottom)
+    pPr.append(pBdr)
+
+def h2(text):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(10)
+    p.paragraph_format.space_after  = Pt(2)
+    run = p.add_run(text)
+    font(run, size=10.5, bold=True, color=SLATE)
+
+def body(text, space_after=5, italic=False, color=None):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(space_after)
+    run = p.add_run(text)
+    font(run, italic=italic, color=color or BLACK)
+    return p
+
+def status_line(tag, text):
+    """Single-line status annotation — tag in color, text in gray italic."""
+    tag_colors = {
+        TAG_CONFIRMED: GREEN_D,
+        TAG_GIS:       AMBER_D,
+        TAG_VERIFY:    RED_D,
+    }
+    p = doc.add_paragraph()
+    p.paragraph_format.left_indent = Inches(0.25)
+    p.paragraph_format.space_after = Pt(5)
+    r1 = p.add_run(f"{tag}  ")
+    font(r1, size=9.5, bold=True, color=tag_colors.get(tag, GRAY))
+    r2 = p.add_run(text)
+    font(r2, size=9.5, italic=True, color=GRAY)
+
+def quote(text, source):
+    p = doc.add_paragraph()
+    p.paragraph_format.left_indent  = Inches(0.35)
+    p.paragraph_format.right_indent = Inches(0.2)
+    p.paragraph_format.space_after  = Pt(5)
+    # left border
+    pPr = p._p.get_or_add_pPr()
+    pBdr = OxmlElement("w:pBdr")
+    left = OxmlElement("w:left")
+    left.set(qn("w:val"),   "single")
+    left.set(qn("w:sz"),    "12")
+    left.set(qn("w:space"), "4")
+    left.set(qn("w:color"), "1F497D")
+    pBdr.append(left)
+    pPr.append(pBdr)
+    r1 = p.add_run(f'"{text}"')
+    font(r1, italic=True, color=(64, 64, 64))
+    r2 = p.add_run(f"  — {source}")
+    font(r2, size=9, italic=True, color=GRAY)
+
+def bullet(text, indent=0):
+    p = doc.add_paragraph(style="List Bullet")
+    p.paragraph_format.left_indent = Inches(0.2 + indent * 0.2)
+    p.paragraph_format.space_after = Pt(2)
+    run = p.add_run(text)
+    font(run)
+
+def mixed(label, rest, indent=0):
+    p = doc.add_paragraph(style="List Bullet")
+    p.paragraph_format.space_after = Pt(3)
+    p.paragraph_format.left_indent = Inches(0.2 + indent * 0.2)
+    r1 = p.add_run(label)
+    font(r1, bold=True)
+    r2 = p.add_run(rest)
+    font(r2)
+
+def divider(label):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = Pt(18)
+    p.paragraph_format.space_after  = Pt(6)
+    shd = OxmlElement("w:shd")
+    shd.set(qn("w:val"),   "clear")
+    shd.set(qn("w:color"), "auto")
+    shd.set(qn("w:fill"),  "1F497D")
+    p._p.get_or_add_pPr().append(shd)
+    run = p.add_run(f"  {label}")
+    font(run, size=11, bold=True, color=WHITE)
+
 def tbl_header(tbl, cols):
     row = tbl.add_row()
     for i, text in enumerate(cols):
         cell = row.cells[i]
         cell.text = ""
-        p   = cell.paragraphs[0]
-        p.paragraph_format.space_after = Pt(2)
+        p = cell.paragraphs[0]
+        p.paragraph_format.space_after = Pt(1)
         run = p.add_run(text)
-        font(run, size=9.5, bold=True, color=(255, 255, 255))
-        tc   = cell._tc
-        tcPr = tc.get_or_add_tcPr()
+        font(run, size=9.5, bold=True, color=WHITE)
+        tcPr = cell._tc.get_or_add_tcPr()
         shd  = OxmlElement("w:shd")
         shd.set(qn("w:val"),   "clear")
         shd.set(qn("w:color"), "auto")
         shd.set(qn("w:fill"),  "1F497D")
         tcPr.append(shd)
 
-def tbl_row(tbl, vals):
+def tbl_row(tbl, vals, alt=False):
     row = tbl.add_row()
+    fill = "F2F5FA" if alt else "FFFFFF"
     for i, text in enumerate(vals):
         cell = row.cells[i]
         cell.text = ""
-        p   = cell.paragraphs[0]
-        p.paragraph_format.space_after = Pt(2)
+        p = cell.paragraphs[0]
+        p.paragraph_format.space_after = Pt(1)
         run = p.add_run(text)
         font(run, size=9.5)
+        if alt:
+            tcPr = cell._tc.get_or_add_tcPr()
+            shd  = OxmlElement("w:shd")
+            shd.set(qn("w:val"),   "clear")
+            shd.set(qn("w:color"), "auto")
+            shd.set(qn("w:fill"),  fill)
+            tcPr.append(shd)
 
 # ═════════════════════════════════════════════════════════════════════════════
 # COVER
 # ═════════════════════════════════════════════════════════════════════════════
 centered("Northeast Florida Military Installation Resilience Review",
-         size=16, bold=True, color=(31,73,125), space_before=20, space_after=4)
+         size=15, bold=True, color=NAVY, space_before=18, space_after=3)
 centered("Energy Redundancy — Combined Intern Research Contribution",
-         size=13, bold=True, color=(55,96,146), space_after=4)
+         size=12, bold=True, color=SLATE, space_after=3)
 centered(
-    "Naval Air Station Jacksonville  |  Naval Station Mayport\n"
-    "MCSF Blount Island  |  Camp Blanding JTF\n"
-    "Duval County and Clay County, Florida",
-    size=10, color=(89,89,89), space_after=4)
-centered("Prepared for Supervisor Review — May 2026",
-         size=10, italic=True, color=(89,89,89), space_after=10)
+    "NAS Jacksonville  ·  NS Mayport  ·  MCSF Blount Island  ·  Camp Blanding JTF",
+    size=9.5, color=GRAY, space_after=2)
+centered("Duval County and Clay County, Florida  ·  Supervisor Review Draft  ·  May 2026",
+         size=9.5, italic=True, color=GRAY, space_after=12)
 
-shaded_box(
-    "About This Document",
-    "This document combines two intern research contributions focused specifically on "
-    "energy redundancy. Part 1 preserves the first intern's research findings verbatim. "
-    "Part 2 adds geographic and vulnerability context developed through MIRR document review. "
-    "No GIS analysis has been performed yet — GIS work is in progress and will spatially "
-    "confirm or refine the findings stated here. No solutions or strategies are proposed. "
-    "Items requiring verification before any proposal can be made are clearly labeled."
+# annotation key
+p = doc.add_paragraph()
+p.paragraph_format.space_after = Pt(14)
+p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+for tag, col, desc in [
+    (TAG_CONFIRMED, GREEN_D, "sourced to confirmed MIRR documents"),
+    ("  ", GRAY, ""),
+    (TAG_GIS,       AMBER_D, "needs GIS to verify spatially"),
+    ("  ", GRAY, ""),
+    (TAG_VERIFY,    RED_D,   "needs external source before use"),
+]:
+    r = p.add_run(tag)
+    font(r, size=9, bold=(tag not in ("  ",)), color=col)
+    if desc:
+        r2 = p.add_run(f" {desc}")
+        font(r2, size=9, italic=True, color=GRAY)
+
+body(
+    "Part 1 preserves the first intern's findings verbatim. Part 2 adds geographic and "
+    "vulnerability context developed through MIRR document review. No GIS analysis has been "
+    "performed yet — that work is in progress. No solutions are proposed.",
+    italic=True, color=GRAY
 )
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -182,57 +217,49 @@ shaded_box(
 divider("PART 1 — First Intern's Research Findings  (preserved verbatim)")
 doc.add_paragraph()
 
-heading("Energy Resilience Overview", level=1)
+h1("Energy Resilience Overview")
 body(
     "Common themes across the sites include dependence on outside grid and exposure to its "
     "shortcomings, namely single-point utility failures outside of these military sites that "
     "could cause failures that cascade onto military sites and threaten mission success. These "
     "failure points are typically substations or lines along the U.S. 17 highway."
 )
-body("These risks are exasperated by increasing energy demand throughout the region and lack "
-     "of redundancy of power supply to installations.")
-body("There are reports of aging infrastructure serving the installations which only increases "
-     "the likelihood of single-point failure.")
+body(
+    "These risks are exasperated by increasing energy demand throughout the region and lack "
+    "of redundancy of power supply to installations. There are reports of aging infrastructure "
+    "serving the installations which only increases the likelihood of single-point failure."
+)
 body(
     "It's worth noting that one of the bases, Camp Blanding, relies on four separate power "
     "providers and Seminole Electric for generation. The Florida Power & Light (FPL) substation "
     "north of the base is a high-risk asset vulnerable to natural hazards and a lack of redundancy."
 )
 
-heading("Adaptation Strategies", level=1)
+h1("Adaptation Strategies")
 body(
     "The general theme of strategies discussed is moving from isolated but dependent islands "
     "into more connected hubs capable of both offering and accepting support to and from the "
-    "larger grid. This shift was motivated by Hurricane Michael's effect on Tyndall AF Base "
-    "in 2018."
+    "larger grid. This shift was motivated by Hurricane Michael's effect on Tyndall AF Base in 2018."
 )
 
-heading("Short Term", level=2)
-bullet("Flood-proofing substations and supply lines are the most pressing short term adaptation "
-       "strategy. Mutual Support Agreements (MSAs) are drafted to formalize collaboration between "
-       "utility companies, local government agencies, and the installations themselves.")
-bullet("Flood proofing and undergrounding may provide more cost-effective resilience than large "
-       "scale sea-walling measures.")
-bullet("Formalizing loose MSA agreements for current and future adaptation projects may improve efficiency.")
-bullet("Addressing redundancy gaps in both electrical and fuel systems by creating backup paths and stocks.")
+h2("Short Term")
+bullet("Flood-proofing substations and supply lines — most pressing near-term priority. "
+       "Mutual Support Agreements (MSAs) to formalize collaboration between utilities, "
+       "local government, and installations.")
+bullet("Flood proofing and undergrounding may be more cost-effective than large-scale sea-walling.")
+bullet("Formalizing loose MSA agreements for current and future adaptation projects.")
+bullet("Addressing redundancy gaps in electrical and fuel systems — backup paths and stocks.")
 
-heading("Long Term", level=2)
-bullet("Expand monitoring systems and data collection of grid and other infrastructure to better "
-       "predict outages and manage performance. This data can be used to assess effectiveness of "
-       "adaptation projects in terms of outages avoided and guide future projects.")
-bullet("Microgrids could offer both independent resilience and eventually the ability to support "
-       "the larger grid with BESS infrastructure. Microgrid feasibility studies are already underway.")
+h2("Long Term")
+bullet("Expand monitoring and data collection to predict outages and measure adaptation effectiveness.")
+bullet("Microgrids with BESS infrastructure — feasibility studies already underway.")
 
-heading("Areas to Explore More", level=2)
-bullet("Prices of battery storage and Solar PV have both fallen dramatically in recent years. "
-       "Minimal mention of either technology, but could a feasibility study be completed? "
-       "The two in tandem could be beneficial.")
-bullet("Miramar MC Air Station outside San Diego, CA uses a blend of energy sources and BESS "
-       "to provide up to 21 days of islanded energy resilience. Methane gas from landfills is "
-       "a significant energy source. Could the several landfills surrounding Jacksonville provide "
-       "similar energy sources or redundancy?")
-bullet("Marine Corp Story")
-bullet("Full CA State Project Report")
+h2("Areas to Explore More")
+bullet("Solar PV and battery storage costs have fallen dramatically — feasibility study warranted.")
+bullet("Miramar MC Air Station uses a blend of energy sources and BESS for up to 21 days of "
+       "islanded resilience. Landfill methane is noted as a fuel source. "
+       "Could Jacksonville-area landfills provide similar redundancy?")
+bullet("Marine Corps Story — Full CA State Project Report")
 
 # ═════════════════════════════════════════════════════════════════════════════
 # PART 2
@@ -240,347 +267,219 @@ bullet("Full CA State Project Report")
 divider("PART 2 — Second Intern's Research Contribution")
 doc.add_paragraph()
 
-shaded_box(
-    "Scope Notice",
-    "All vulnerability findings in Part 2 are cited from confirmed MIRR project documents. "
-    "No independent GIS analysis has been performed. Color-coded notes throughout indicate "
-    "whether each point is confirmed (green), needs GIS to verify spatially (orange), "
-    "or needs external source verification before it can be used (red).",
-    fill="FFF4E5", tc=(102, 51, 0)
-)
-
-# ── 2.1 Core problem ──────────────────────────────────────────────────────────
-heading("2.1  The Core Problem: Zero Electrical Redundancy", level=1)
+# ── 2.1 ──────────────────────────────────────────────────────────────────────
+h1("2.1  The Core Problem: Zero Electrical Redundancy")
 body(
-    "The MIRR vulnerability assessment identifies a single finding that frames everything else "
-    "about energy at these installations. It is not a broad energy risk — it is a specific "
-    "structural gap:"
+    "All four installations draw power from a single external substation with no backup "
+    "supply path. If that substation fails, the installation loses commercial power entirely. "
+    "Utility agreements (IGSAs) cover operations and maintenance only — no resilience or "
+    "redundancy obligation exists."
 )
 quote(
-    "At the asset systems level there is no immediate risk to mission other than single points "
-    "of failure at each installation.",
+    "At the asset systems level there is no immediate risk to mission other than single "
+    "points of failure at each installation.",
     "MIRR Vulnerability Assessment, January 2026 Steering Committee"
 )
-body(
-    "All four installations draw power from a single external substation with no backup supply "
-    "path. If that substation fails — for any reason — the installation loses commercial power "
-    "entirely. There is no second line, no alternative feed, no redundant path. The utility "
-    "agreements (IGSAs) at NAS JAX and NS Mayport cover operations and maintenance only — they "
-    "include no resilience or redundancy obligation on JEA's part."
-    "  (MIRR Mutual Support Assessment, February 2026 TAC)"
-)
-note("Confirmed by MIRR VA and Mutual Support Assessment. No GIS needed to state this finding.",
-     kind="confirmed")
+status_line(TAG_CONFIRMED, "Risk ratings and IGSA gap confirmed by MIRR VA and Mutual Support Assessment, Feb 2026 TAC.")
 
-body("Confirmed substation locations and risk ratings from the MIRR VA:")
 t1 = doc.add_table(rows=1, cols=4)
 t1.style = "Table Grid"
 tbl_header(t1, ["Installation", "Substation / Owner", "Risk to Mission", "Urgency"])
-tbl_row(t1, ["NS Mayport",        "JEA — south of base",  "HIGH",   "Immediate"])
-tbl_row(t1, ["MCSF Blount Island","JEA Substation",       "MEDIUM", "Immediate"])
-tbl_row(t1, ["NAS Jacksonville",  "JEA — north of base",  "MEDIUM", "Immediate"])
-tbl_row(t1, ["Camp Blanding",     "FPL — north of base",  "HIGH",   "Near-Term"])
+rows = [
+    ("NS Mayport",         "JEA — south of base",  "HIGH",   "Immediate"),
+    ("MCSF Blount Island", "JEA Substation",        "MEDIUM", "Immediate"),
+    ("NAS Jacksonville",   "JEA — north of base",   "MEDIUM", "Immediate"),
+    ("Camp Blanding",      "FPL — north of base",   "HIGH",   "Near-Term"),
+]
+for i, r in enumerate(rows):
+    tbl_row(t1, r, alt=(i % 2 == 1))
 doc.add_paragraph()
 
-# ── 2.2 Why redundancy is hard here ──────────────────────────────────────────
-heading("2.2  Why Redundancy Is Harder Here Than Elsewhere", level=1)
-body(
-    "The specific geography of Northeast Florida creates constraints that make standard "
-    "redundancy solutions more complex than they would be in other regions. These are not "
-    "general observations — they are specific to this area."
-)
+# ── 2.2 ──────────────────────────────────────────────────────────────────────
+h1("2.2  Why Redundancy Is Harder Here — Regional Geography")
 
-heading("Shallow Water Table — Complicates Undergrounding", level=2)
+h2("Shallow Water Table")
 body(
-    "Part 1 correctly identifies undergrounding as a potential resilience measure. In coastal "
-    "Duval County the water table in many areas sits only a few feet below grade. Underground "
-    "cables in a high water table environment face groundwater intrusion, saltwater corrosion "
-    "from below, and significantly harder fault location and repair when failures occur. "
-    "JEA has been selectively undergrounding in northeast Florida but has proceeded cautiously "
-    "precisely because of these conditions. Undergrounding trades wind and debris vulnerability "
-    "for below-grade flood and corrosion vulnerability — it is not a clean redundancy solution "
-    "in this specific region."
+    "Undergrounding is often proposed as a wind and debris solution. In coastal Duval County "
+    "the water table sits only a few feet below grade in many areas. Underground cables here "
+    "face groundwater intrusion, saltwater corrosion from below, and difficult fault repair "
+    "when failures occur. JEA has undergrounded selectively but cautiously for this reason. "
+    "Undergrounding trades one vulnerability for another — it is not a clean redundancy fix "
+    "in this region."
 )
-note("The shallow water table is a confirmed regional condition. Specific depths at substation "
-     "locations and along potential redundant feed corridors need GIS and geotechnical data "
-     "to confirm.", kind="GIS")
+status_line(TAG_GIS, "Specific water table depths at substation locations need USGS groundwater data and SJRWMD mapping.")
 
-heading("Limited Access Corridors — Compounds Restoration Timelines", level=2)
+h2("Limited Access Corridors")
+body("Each installation's geography creates hard constraints on restoration crew access:")
+mixed("NS Mayport — ", "A1A only. Coastal peninsula — A1A flooding isolates the substation entirely.")
+mixed("Blount Island — ", "Heckscher Drive only. River island — structural access limitation.")
+mixed("NAS Jacksonville — ", "Roosevelt Blvd / US-17. Both run through St. Johns River floodplain.")
+mixed("Camp Blanding — ", "SR-16. Black Creek flooding closes surrounding roads in tropical storm conditions.")
+status_line(TAG_GIS, "FDOT road network overlaid against SLOSH and CDBG flood models will confirm which corridors close and at what storm frequency.")
+
+h2("Upstream Grid Topology")
 body(
-    "The installations' geographic positions create inherent access constraints that directly "
-    "affect how long an outage lasts once it occurs:"
+    "A regional storm can cut power to a substation even if the substation is physically intact — "
+    "by knocking out an upstream node in the grid. How many such nodes exist between the "
+    "regional grid and each installation's substation, and how much of that path runs through "
+    "flood-exposed terrain, is unknown. JEA has not shared transmission routing data with "
+    "the MIRR team as of September 2025 TAC."
 )
-mixed("NS Mayport: ", "A1A is the primary southern access corridor. The installation sits on "
-      "a coastal peninsula — flooding of A1A isolates restoration crews regardless of "
-      "substation condition.")
-mixed("MCSF Blount Island: ", "Heckscher Drive is the primary industrial access route. "
-      "The installation is on an island in the St. Johns River — road access is structurally "
-      "limited by geography.")
-mixed("NAS Jacksonville: ", "Roosevelt Boulevard and US-17 are the primary corridors. "
-      "Both run through low-lying terrain along the St. Johns River floodplain.")
-mixed("Camp Blanding: ", "SR-16 is the primary access route through Clay County. "
-      "Black Creek flooding closes surrounding roads even in tropical storm conditions.")
-note("Access corridor flood exposure needs GIS overlay against SLOSH and CDBG flood models "
-     "to confirm at which storm frequencies each corridor becomes impassable.", kind="GIS")
+status_line(TAG_GIS, "EIA Form 860 and HIFLD transmission layers will be used as proxy. JEA data sharing needed for full picture.")
 
-heading("Grid Topology Upstream of Each Substation — Unconfirmed", level=2)
-body(
-    "The installations depend on whatever grid infrastructure feeds their substations from "
-    "upstream. A regional storm event can cut power to a substation even if the substation "
-    "itself is physically intact — if a node upstream in the grid fails, the substation goes "
-    "dark. The exact routing of transmission feeding each substation, how many upstream nodes "
-    "exist, and how much of that path runs through flood-exposed terrain is not documented "
-    "in the MIRR materials. JEA has not shared detailed infrastructure data with the MIRR "
-    "team as of the September 2025 TAC."
-)
-note("JEA utility infrastructure data is a confirmed MIRR data gap. Transmission routing "
-     "upstream of each substation needs JEA coordination and GIS mapping before the full "
-     "redundancy picture can be understood.", kind="GIS")
+# ── 2.3 ──────────────────────────────────────────────────────────────────────
+h1("2.3  Regional Hazards That Activate the Redundancy Gap")
+body("These hazards are confirmed by MIRR VA as region-specific — not generic national risks.")
 
-# ── 2.3 Regional hazards ──────────────────────────────────────────────────────
-heading("2.3  Regional Hazards That Trigger the Redundancy Gap", level=1)
-body(
-    "The redundancy gap becomes a mission risk when a hazard event disrupts the single supply "
-    "path. The following hazards are confirmed by the MIRR vulnerability assessment as relevant "
-    "to this specific region — they are not generic national risks."
-)
-
-heading("Storm Surge — NS Mayport and Blount Island", level=2)
+h2("Storm Surge — NS Mayport and Blount Island")
 body(
     "Both installations sit adjacent to the St. Johns River mouth and the Atlantic coast. "
-    "NHC SLOSH modeling confirms Cat 3–5 surge reaches the substations serving these "
-    "installations. NS Mayport's JEA substation carries the highest urgency rating in the "
-    "entire region — HIGH / Immediate — specifically because of surge exposure combined "
-    "with zero redundancy. Storm surge does not just threaten the substation physically; "
-    "it also inundates the access corridors that restoration crews depend on, extending "
-    "the outage duration beyond the physical damage window."
+    "NHC SLOSH Cat 3–5 surge reaches the substations serving these installations. "
+    "Surge simultaneously threatens the substation physically and inundates the access "
+    "corridors restoration crews depend on — extending outage duration beyond the storm window."
 )
-note("SLOSH surge extents confirmed as MIRR data source. Spatial overlay of substation "
-     "locations against Cat 3/5 surge zones needs GIS confirmation — viewable now through "
-     "NOAA Digital Coast web viewer without ArcGIS.", kind="GIS")
+status_line(TAG_CONFIRMED, "SLOSH confirmed as MIRR data source. NS Mayport substation: HIGH / Immediate.")
+status_line(TAG_GIS, "Spatial overlay of substation locations against Cat 3/5 surge extents — viewable now via NOAA Digital Coast.")
 
-heading("Rainfall Flooding and Compound Events — NAS Jacksonville", level=2)
+h2("Compound Rainfall Flooding — NAS Jacksonville")
 body(
-    "NAS Jacksonville sits along the St. Johns River floodplain. The NEFRC CDBG flood model "
-    "confirms 100-year present, 2040, and 2070 rainfall flood scenarios for this area. "
-    "Compound flooding — where rainfall runoff cannot drain because tidal backflow holds "
-    "water levels elevated — is a confirmed and increasing risk in coastal Duval County. "
-    "Roosevelt Boulevard and US-17, the primary restoration access corridors for NAS JAX, "
-    "run through this terrain."
+    "NAS JAX sits on the St. Johns River floodplain. NEFRC CDBG flood modeling confirms "
+    "100-year present, 2040, and 2070 rainfall flood scenarios. Compound flooding — rainfall "
+    "compounded by tidal backflow — is an increasing risk in coastal Duval County. Both "
+    "primary access corridors (Roosevelt Blvd and US-17) run through this terrain."
 )
-note("CDBG compound flood model is a confirmed MIRR data source. Road corridor intersection "
-     "with flood zones needs GIS overlay.", kind="GIS")
+status_line(TAG_CONFIRMED, "CDBG compound flood model confirmed as MIRR data source.")
+status_line(TAG_GIS, "Road corridor intersection with flood extents needs GIS overlay.")
 
-heading("Wildfire — Camp Blanding Transmission Corridor", level=2)
+h2("Wildfire — Camp Blanding Transmission Corridor")
 body(
-    "Camp Blanding's 73,000 acres sit within Florida's wildland-urban interface in Clay County. "
-    "The FPL transmission corridor serving the base runs through scrub and longleaf pine "
-    "terrain confirmed as wildfire-exposed by USDA Forest Service data cited in the MIRR. "
-    "Unlike storm events, wildfire can cut the transmission corridor without weather warning "
-    "and during periods of clear operational tempo — making it a distinct and unpredictable "
-    "trigger for the redundancy gap."
+    "Camp Blanding's 73,000 acres sit in Florida's wildland-urban interface. The FPL "
+    "transmission corridor runs through scrub and longleaf pine terrain confirmed as "
+    "wildfire-exposed by USDA FS data cited in the MIRR. Unlike storm events, wildfire "
+    "can sever the corridor with no weather warning."
 )
-note("USDA FS wildfire hazard is a confirmed MIRR data source. Spatial extent of wildfire "
-     "hazard along the specific FPL corridor to Blanding needs GIS overlay.", kind="GIS")
+status_line(TAG_CONFIRMED, "USDA FS wildfire hazard confirmed as MIRR data source. Camp Blanding FPL substation: HIGH / Near-Term.")
+status_line(TAG_GIS, "Spatial extent of wildfire hazard along FPL corridor needs GIS overlay.")
 
-# ── 2.4 Historical events ─────────────────────────────────────────────────────
-heading("2.4  Historical Events — Evidence the Risk Is Real", level=1)
-body(
-    "The following events document that the hazards identified above have occurred in this "
-    "specific region and caused the types of disruption the redundancy gap makes dangerous. "
-    "Items confirmed in MIRR documents are labeled. Items from public record that need "
-    "primary source citation before use in a formal deliverable are labeled separately."
-)
+# ── 2.4 ──────────────────────────────────────────────────────────────────────
+h1("2.4  Historical Events — Evidence the Risk Is Real")
 
-heading("Confirmed in MIRR Documents", level=2)
+h2("Confirmed in MIRR Documents")
 mixed("NS Mayport — recurring flooding: ",
-      "Multiple flooding events per year confirmed as the commanding officer's most pressing "
-      "operational concern. (MIRR Stakeholder Workshop 1 Summary V2)")
+      "Multiple flooding events per year. Commanding officer cited as most pressing "
+      "operational concern. (Stakeholder Workshop 1 Summary V2)")
 mixed("NAS Jacksonville — 106 mph wind gust, 1997: ",
-      "Confirmed in MIRR evaluation methodology as documented regional wind event. "
-      "Establishes hurricane-force wind as a demonstrated, not theoretical, hazard.")
-mixed("MCSF Blount Island — active water intrusion: ",
-      "Water intrusion already threatening electrical systems confirmed in Kickoff Briefing, "
-      "April 2025. This is ongoing degradation, not a past event.")
+      "Documented in MIRR evaluation methodology. Establishes hurricane-force wind "
+      "as a demonstrated regional hazard.")
+mixed("Blount Island — active water intrusion: ",
+      "Water intrusion already threatening electrical systems. Current ongoing "
+      "degradation, not a future scenario. (Kickoff Briefing, April 2025)")
 mixed("Tyndall AFB — Hurricane Michael, 2018: ",
-      "Confirmed in APTIM memo Section 1.1. On-base hardening proved insufficient when "
-      "surrounding utilities, roads, and civilian infrastructure failed. Established the "
-      "regional dependency lesson that frames this entire assessment.")
+      "On-base hardening proved insufficient when surrounding utilities and roads "
+      "failed. Established the regional dependency lesson. (APTIM memo, Section 1.1)")
+status_line(TAG_CONFIRMED, "All four items sourced to confirmed MIRR project documents.")
 
-heading("From Public Record — Needs Primary Source Before Formal Use", level=2)
-body(
-    "The following events are well-documented in public records and directly relevant to "
-    "this project. They should be verified through the sources listed before being cited "
-    "in any client-facing document."
-)
-mixed("Hurricane Matthew, October 2016: ",
-      "Made near-landfall north of Jacksonville. Caused historic St. Johns River flooding "
-      "described as the worst in decades. A1A — NS Mayport's primary access corridor — "
-      "flooded significantly. JEA reported widespread Duval County outages.\n"
-      "     Verify through: NOAA NHC post-storm report, Florida PSC JEA storm filing, "
-      "NOAA Storm Events Database (Duval County, October 2016)")
-mixed("Hurricane Irma, September 2017: ",
-      "JEA reported over 200,000 customers without power at peak across Jacksonville. "
-      "Demonstrates regional grid vulnerability to storms tracking up the peninsula.\n"
-      "     Verify through: NOAA NHC post-storm report, Florida PSC JEA storm filing, "
-      "FEMA disaster declaration FL-4337")
+h2("From Public Record — Needs Primary Source Before Formal Use")
+mixed("Hurricane Matthew, October 2016 — ",
+      "Historic St. Johns River flooding in Jacksonville. A1A flooded. "
+      "JEA reported widespread Duval County outages.\n"
+      "         Verify: NOAA NHC report AL142016, Florida PSC JEA storm filing, "
+      "NOAA Storm Events Database (Duval, Oct 2016)")
+mixed("Hurricane Irma, September 2017 — ",
+      "JEA reported 200,000+ customers without power at peak across Jacksonville.\n"
+      "         Verify: NOAA NHC report AL112017, Florida PSC JEA storm filing, "
+      "FEMA declaration DR-4337")
+status_line(TAG_VERIFY, "Do not cite Matthew or Irma in formal deliverables until PSC filings and NHC reports are pulled.")
 
-note("Until Matthew and Irma outage data is pulled from Florida PSC filings and NOAA NHC "
-     "reports, these should not be stated as confirmed findings in client documents. "
-     "They are included here as research direction.", kind="verify")
+# ── 2.5 ──────────────────────────────────────────────────────────────────────
+h1("2.5  GIS Analyses Planned")
+body("The following will spatially confirm and quantify the vulnerabilities documented above.")
 
-# ── 2.5 What GIS will confirm ─────────────────────────────────────────────────
-heading("2.5  What GIS Will Confirm — Specific Analyses Planned", level=1)
-body(
-    "GIS does not create the vulnerabilities documented above — the MIRR has already confirmed "
-    "those qualitatively. GIS will spatially verify, quantify, and visually communicate each "
-    "finding. The following table lists the specific analyses planned and the datasets required."
-)
-
-t2 = doc.add_table(rows=1, cols=4)
+t2 = doc.add_table(rows=1, cols=3)
 t2.style = "Table Grid"
-tbl_header(t2, ["Analysis", "Datasets", "Source", "What It Confirms"])
-gis = [
-    ("Substation locations vs. surge zones",
-     "HIFLD substations, NHC SLOSH Cat 3/5",
-     "HIFLD Open; NOAA Digital Coast",
-     "Which substations fall within confirmed surge extents"),
-    ("FEMA flood zones — effective vs. preliminary",
-     "FEMA NFHL effective maps; FEMA preliminary maps where updated",
-     "FEMA Flood Map Service Center",
-     "Whether flood zone designations near substations have been updated in "
-     "preliminary maps — preliminary maps often show higher risk than effective"),
+tbl_header(t2, ["Analysis", "Primary Dataset / Source", "What It Will Confirm"])
+gis_rows = [
+    ("Substation locations vs. surge zones\n(check FEMA effective and preliminary maps)",
+     "HIFLD substations; NHC SLOSH\nFEMA MSC (both versions)",
+     "Which substations fall within Cat 3/5 surge; whether preliminary maps show higher risk than effective"),
     ("Access corridors vs. flood zones",
-     "FDOT road network, NEFRC CDBG, FEMA NFHL",
-     "FDOT GIS; FEMA MSC; Resilient Jax",
+     "FDOT road network; NEFRC CDBG\nFEMA NFHL; Resilient Jax",
      "Which corridors flood and at what storm frequency"),
-    ("Transmission routing — upstream of each substation",
-     "EIA Form 860, HIFLD transmission lines",
-     "EIA.gov; HIFLD Open",
-     "How many upstream nodes exist and their flood exposure"),
-    ("US-17 transmission corridor",
-     "EIA / HIFLD transmission lines",
-     "HIFLD Open",
-     "Whether lines along US-17 serve these installations"),
+    ("Transmission routing upstream of substations",
+     "EIA Form 860; HIFLD transmission lines\nUS-17 corridor verification",
+     "Upstream node count and flood exposure; confirms or refutes Part 1 US-17 SPOF claim"),
     ("FPL corridor wildfire exposure",
-     "USDA FS wildfire hazard, EIA lines",
-     "USDA FS Research Data; HIFLD",
+     "USDA FS Wildfire Hazard Potential\nHIFLD transmission lines",
      "Wildfire hazard extent along Camp Blanding supply corridor"),
-    ("Water table depth at substation locations",
-     "USGS groundwater data, SJRWMD",
-     "USGS National Map; SJRWMD portal",
-     "Feasibility constraints for undergrounding at each site"),
-    ("Coastal infrastructure damage estimates — Mayport and Blount Island",
-     "Army Corps of Engineers coastal damage models",
-     "USACE Jacksonville District",
-     "Estimated infrastructure damage under surge scenarios; co-benefit "
-     "analysis for coastal protection investments"),
+    ("Water table at substation locations",
+     "USGS National Map / 3DEP\nSJRWMD groundwater data",
+     "Undergrounding feasibility constraints at each site"),
+    ("Coastal damage estimates — Mayport and Blount Island",
+     "USACE Jacksonville District\ncoastal damage models",
+     "Infrastructure damage estimates under surge scenarios"),
 ]
-for r in gis:
-    tbl_row(t2, r)
+for i, r in enumerate(gis_rows):
+    tbl_row(t2, r, alt=(i % 2 == 1))
 doc.add_paragraph()
+status_line(TAG_GIS, "Tier 1 (public data, available now): HIFLD, EIA, NOAA, FEMA, USDA FS, FDOT, USGS. "
+            "Tier 2 (needs data agreements, August–September budget approval): JEA routing, "
+            "NAVFAC outage history, USACE detailed models.")
 
-# ── 2.6 What still needs research ────────────────────────────────────────────
-heading("2.6  Items Requiring Research Before Any Proposal Can Be Made", level=1)
+# ── 2.6 ──────────────────────────────────────────────────────────────────────
+h1("2.6  Items Requiring Research Before Any Proposal Can Be Made")
 body(
-    "The following items were raised in prior research but cannot be included in any "
-    "professional deliverable until the work below is completed. They are documented here "
-    "so the research path is clear."
+    "These items have been raised in prior research but are not ready for any formal "
+    "deliverable. Each entry documents what is known and exactly what work is needed next."
 )
 
 t3 = doc.add_table(rows=1, cols=3)
 t3.style = "Table Grid"
-tbl_header(t3, ["Item", "What Is Known", "What Is Needed Before Use"])
-research = [
-    ("Small Modular Reactors (SMRs) / DoD microreactors",
-     "DoD is actively pursuing on-site microreactors through Project Pele. "
-     "Would eliminate single substation dependency entirely — true on-site "
-     "redundancy independent of civilian grid. Most complete redundancy "
-     "solution identified, also most complex and regulatory-intensive.",
-     "Research DoD Project Pele program and current status. Review NRC SMR "
-     "design approvals. Contact DOE and confirm ENRIL organization (verify "
-     "correct name with manager). Assess regulatory pathway for military "
-     "installations specifically."),
-    ("Electrical infrastructure insurance coverage",
-     "Type of insurance JEA and FPL carry on substations serving these "
-     "installations is unknown. Claims timeline after a storm event affects "
-     "how quickly damaged infrastructure gets repaired — directly extends "
-     "outage duration beyond the physical repair window.",
-     "Contact Florida PSC for utility insurance filing requirements. "
-     "Review JEA and FPL annual reports for insurance disclosures. "
-     "Determine whether FEMA NFIP covers utility substations or whether "
-     "separate commercial flood insurance applies."),
+tbl_header(t3, ["Item", "What Is Known", "Next Steps Required"])
+research_rows = [
+    ("Small Modular Reactors / DoD Microreactors",
+     "DoD's Project Pele pursues on-site microreactors for military installations — would "
+     "eliminate civilian grid dependency entirely. Most complete redundancy solution; "
+     "also most complex and regulatory-intensive.",
+     "Research Project Pele status and applicable installations. Contact DOE and confirm "
+     "ENRIL organization name with manager. Assess NRC regulatory pathway."),
+    ("Electrical infrastructure insurance",
+     "Type and scope of insurance JEA and FPL carry on these substations is unknown. "
+     "Claims timeline after storm events directly affects how long outages last.",
+     "Review Florida PSC utility insurance filings. Check JEA and FPL annual reports. "
+     "Determine whether FEMA NFIP covers utility substations."),
     ("Miramar landfill methane / 21-day islanding",
-     "First intern identified Miramar as a potential model. APTIM memo confirms only "
-     "'microgrid and energy resilience investments' at Miramar — no landfill methane "
-     "or islanding duration confirmed.",
-     "Primary source (DOE 2022 report cited in APTIM). GIS mapping of Jacksonville-area "
-     "landfill proximity to installations. Pipeline feasibility assessment."),
-    ("Tidal energy at NS Mayport / Blount Island",
-     "St. Johns River mouth has high tidal flow. Tidal converters sit below surge. "
-     "No feasibility study found in MIRR documents.",
-     "DOE Water Power Technologies Office feasibility study search. Navigation channel "
-     "and environmental permitting review. Site-specific flow rate data from USGS or NOAA."),
+     "APTIM memo confirms only 'microgrid and energy resilience investments' at Miramar. "
+     "21-day figure and landfill methane source unconfirmed.",
+     "Find DOE 2022 report cited in APTIM. Map Jacksonville-area landfill proximity "
+     "to NAS JAX and Blount Island via GIS."),
     ("Solar PV + BESS at Camp Blanding",
-     "Costs have declined. Land available. EUL authority exists. "
+     "Costs have declined significantly. 73,000 acres available. EUL authority exists. "
      "No Blanding-specific feasibility study found in MIRR documents.",
-     "ESTCP / ESPC prior study search. Camp Blanding load profile data. "
-     "EUL process timeline and authority confirmation."),
-    ("JEA transmission routing upstream of substations",
-     "Confirmed data gap in MIRR — JEA has not shared infrastructure data "
-     "as of Sept 2025 TAC.",
-     "JEA coordination under expanded IGSA. EIA Form 860 as proxy. "
-     "Florida PSC storm hardening filings for JEA."),
-    ("Actual outage history at installations",
-     "Regional outages from Matthew and Irma are publicly documented. "
+     "Search ESTCP and ESPC for prior studies at Blanding. Obtain load profile data. "
+     "Confirm EUL process timeline."),
+    ("JEA upstream transmission routing",
+     "Confirmed MIRR data gap — JEA has not shared infrastructure data as of Sept 2025 TAC.",
+     "JEA coordination under expanded IGSA. EIA Form 860 as interim proxy. "
+     "Florida PSC storm hardening filings for JEA planned investments."),
+    ("Historical outage data at installations",
+     "Regional outages from Matthew and Irma are documented publicly. "
      "Installation-specific outage duration is not in public record.",
      "Florida PSC JEA storm filings. EIA-417 post-event outage reports. "
      "NAVFAC coordination for installation-level data."),
 ]
-for r in research:
-    tbl_row(t3, r)
+for i, r in enumerate(research_rows):
+    tbl_row(t3, r, alt=(i % 2 == 1))
 doc.add_paragraph()
+status_line(TAG_VERIFY, "None of the above should appear in any client-facing document until the listed research is completed.")
 
-# ── Data availability and timeline ────────────────────────────────────────────
-heading("2.7  Data Availability and Project Timeline", level=1)
-body(
-    "Not all data needed for a complete redundancy assessment is publicly available or "
-    "immediately accessible. The following reflects the project's current data situation "
-    "and planned timeline."
-)
+# ── 2.7 Sources ───────────────────────────────────────────────────────────────
+h1("2.7  Sources")
 
-heading("Two-Tier GIS Approach", level=2)
-body(
-    "GIS analysis will proceed in two tiers based on data availability:"
-)
-mixed("Tier 1 — Available now: ",
-      "Publicly accessible federal datasets: HIFLD, EIA Form 860, NOAA Digital Coast "
-      "(SLOSH, SLR), FEMA NFHL (effective and preliminary), USDA FS wildfire, FDOT road "
-      "network, USGS groundwater. These can be run immediately and will confirm the "
-      "spatial extent of confirmed MIRR vulnerabilities.")
-mixed("Tier 2 — Requires data agreements: ",
-      "JEA and FPL infrastructure routing, on-installation asset data, NAVFAC outage "
-      "history, Army Corps damage model outputs. Budget approval expected August–September "
-      "2026 will enable formal data sharing agreements for these sources.")
-
-heading("Low-Resolution Data — Documented Uncertainty", level=2)
-body(
-    "Risk datasets in this space are often lower resolution than ideal for substation-level "
-    "analysis. Where dataset resolution limits precision, analysis outputs will include "
-    "explicit uncertainty bounds and the limitation will be documented in methodology notes. "
-    "This is standard practice and does not invalidate the findings — it accurately "
-    "represents what the data can and cannot show."
-)
-note("When downloading any dataset, read the methodology paper and contact the lead "
-     "researcher with questions about resolution limitations and appropriate use cases. "
-     "Researcher contact information is typically in dataset metadata.", kind="GIS")
-
-# ── Sources ───────────────────────────────────────────────────────────────────
-heading("2.8  Sources", level=1)
-body("Confirmed MIRR project documents:")
+h2("Confirmed MIRR Project Documents")
 for s in [
     "NEFRC MIRR Vulnerability Assessment — January 2026 Steering Committee",
     "MIRR Mutual Support Assessment — February 2026 TAC",
+    "MIRR Adaptation Planning Framework — April 2026 Steering Committee",
     "MCSF Blount Island Kickoff Briefing — April 2025",
     "NAS Jacksonville Site Visit Summary V3",
     "Camp Blanding Summary V2",
@@ -589,29 +488,29 @@ for s in [
 ]:
     bullet(s)
 
-body("Sources to verify for historical event evidence:", space_after=3)
+h2("To Verify — Historical Events")
 for s in [
-    "NOAA NHC Post-Storm Reports — Hurricane Matthew (AL142016), Hurricane Irma (AL112017)",
+    "NOAA NHC Post-Storm Reports — Matthew (AL142016), Irma (AL112017)",
     "NOAA Storm Events Database — Duval and Clay Counties, 2015–present",
-    "Florida PSC Storm Protection Plan Filings — JEA and FPL annual reports",
-    "FEMA Disaster Declarations — DR-4283 (Matthew), DR-4337 (Irma)",
     "NWS Jacksonville Local Storm Event Archive",
+    "Florida PSC Storm Protection Plan Filings — JEA and FPL",
+    "FEMA Disaster Declarations — DR-4283 (Matthew), DR-4337 (Irma)",
 ]:
     bullet(s)
 
-body("GIS datasets to be used:", space_after=3)
+h2("GIS Datasets — Planned Use")
 for s in [
     "HIFLD Open Data — military boundaries, transmission lines, substations",
     "EIA Form 860 — substation and generation facility locations",
-    "NOAA Digital Coast — SLOSH surge modeling, sea level rise viewer",
-    "FEMA Flood Map Service Center — National Flood Hazard Layer (effective and preliminary)",
+    "NOAA Digital Coast — SLOSH surge modeling, sea level rise projections",
+    "FEMA Flood Map Service Center — NFHL (effective and preliminary versions)",
     "FDOT GIS — Florida road network",
-    "USDA Forest Service Wildfire Hazard Potential — national raster dataset",
-    "USGS National Map / 3DEP — elevation and groundwater data",
-    "SJRWMD — St. Johns River Water Management District water resource data",
-    "Resilient Jacksonville — NEFRC CDBG compound flood model outputs",
-    "USACE Jacksonville District — coastal damage modeling and infrastructure data",
-    "Department of Energy — energy resilience and infrastructure research",
+    "USDA Forest Service Wildfire Hazard Potential",
+    "USGS National Map / 3DEP — elevation and groundwater",
+    "SJRWMD — groundwater and water resource data",
+    "Resilient Jacksonville — NEFRC CDBG compound flood model",
+    "USACE Jacksonville District — coastal damage modeling",
+    "Department of Energy — energy resilience research and program data",
     "Florida PSC — utility storm hardening filings and niche utility data",
 ]:
     bullet(s)
