@@ -12,20 +12,26 @@ for section in doc.sections:
     section.left_margin   = Inches(1.25)
     section.right_margin  = Inches(1.25)
 
-# ── Palette (friendlier: medium steel blue + warm accents) ────────────────────
-BLUE       = (31,  96,  151)   # primary — readable medium blue
-BLUE_MED   = (46,  117, 182)   # header fill text
-BLUE_LITE  = (189, 215, 238)   # header background fill
-BLUE_PALE  = (222, 235, 247)   # cover banner fill
-SLATE      = (68,  84,  106)   # secondary text, h2
-GRAY_D     = (89,  89,  89)    # body annotations
-GRAY_LITE  = (242, 242, 242)   # divider band
-BLACK      = (0,   0,   0)
-GREEN_D    = (55,  86,  35)    # confirmed tag
-AMBER_D    = (124, 84,  0)     # pending tag
-RED_D      = (156, 0,   6)     # needs-verify tag
+# ── Palette (warm cream / forest green — easy on the eyes) ───────────────────
+# Body text: dark charcoal (not pure black) — reduces harshness on white paper
+# Accents: muted forest green — calm, readable, professional
+# Fills: warm off-white cream for headers, pale sage for table alternates
+# Dividers: deep warm olive band — grounding without glare
+FOREST     = (45,  90,  55)    # primary accent — forest green
+FOREST_MED = (60,  110, 70)    # header fill text
+OLIVE_DARK = (52,  68,  44)    # divider band text / deep accent
+CHARCOAL   = (45,  45,  45)    # body text — dark charcoal, not pure black
+WARM_GRAY  = (100, 95,  90)    # annotations, captions
+CREAM      = "F5F0E8"          # h1 fill — warm off-white
+CREAM_ALT  = "EDE8DF"          # slightly deeper cream for divider
+SAGE_ALT   = "EAF0E8"          # table alternating row — pale sage
+DIVIDER_BG = "3D5436"          # dark forest green for part dividers
+GREEN_D    = (35,  85,  35)    # confirmed tag
+AMBER_D    = (130, 80,  10)    # pending tag — warm amber, not harsh orange
+RED_D      = (140, 30,  30)    # needs-verify tag — muted red
 WHITE      = (255, 255, 255)
-TEAL_RULE  = "1F6096"          # hex for border elements
+BLACK      = (0,   0,   0)
+FOREST_HEX = "2D5A37"          # hex for border elements
 
 TAG_CONFIRMED = "● Confirmed"
 TAG_GIS       = "◐ Pending GIS"
@@ -48,7 +54,9 @@ def set_para_shading(p, fill_hex):
     shd.set(qn("w:fill"),  fill_hex)
     pPr.append(shd)
 
-def add_left_border(p, color_hex=TEAL_RULE, sz="16"):
+def add_left_border(p, color_hex=None, sz="16"):
+    if color_hex is None:
+        color_hex = FOREST_HEX
     pPr = p._p.get_or_add_pPr()
     pBdr = OxmlElement("w:pBdr")
     left = OxmlElement("w:left")
@@ -59,7 +67,9 @@ def add_left_border(p, color_hex=TEAL_RULE, sz="16"):
     pBdr.append(left)
     pPr.append(pBdr)
 
-def add_bottom_border(p, color_hex=TEAL_RULE, sz="6"):
+def add_bottom_border(p, color_hex=None, sz="6"):
+    if color_hex is None:
+        color_hex = FOREST_HEX
     pPr = p._p.get_or_add_pPr()
     pBdr = OxmlElement("w:pBdr")
     bot  = OxmlElement("w:bottom")
@@ -72,15 +82,17 @@ def add_bottom_border(p, color_hex=TEAL_RULE, sz="6"):
 
 # ── Text helpers ──────────────────────────────────────────────────────────────
 def font(run, size=11, bold=False, italic=False, color=None):
-    run.font.name = "Calibri"
-    run.font.size = Pt(size)
-    run.bold      = bold
-    run.italic    = italic
+    run.font.name  = "Georgia"   # serif — warmer, more readable for long documents
+    run.font.size  = Pt(size)
+    run.bold       = bold
+    run.italic     = italic
     if color:
         run.font.color.rgb = RGBColor(*color)
 
 def centered(text, size=11, bold=False, italic=False,
-             color=BLACK, space_before=0, space_after=4):
+             color=None, space_before=0, space_after=4):
+    if color is None:
+        color = CHARCOAL
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_before = Pt(space_before)
@@ -89,43 +101,55 @@ def centered(text, size=11, bold=False, italic=False,
     font(run, size=size, bold=bold, italic=italic, color=color)
     return p
 
-def body(text, space_after=6, italic=False, color=None):
+def body(text, space_after=7, italic=False, color=None):
     p = doc.add_paragraph()
     p.paragraph_format.space_after  = Pt(space_after)
-    p.paragraph_format.space_before = Pt(0)
+    p.paragraph_format.space_before = Pt(1)
+    # 1.15 line spacing — easier to read
+    p.paragraph_format.line_spacing = Pt(14)
     run = p.add_run(text)
-    font(run, size=11, italic=italic, color=color or BLACK)
+    font(run, size=11, italic=italic, color=color or CHARCOAL)
     return p
 
-def body2(parts, space_after=6):
+def body2(parts, space_after=7):
     """Paragraph with mixed bold/normal runs. parts = [(text, bold), ...]"""
     p = doc.add_paragraph()
-    p.paragraph_format.space_after = Pt(space_after)
+    p.paragraph_format.space_after  = Pt(space_after)
+    p.paragraph_format.line_spacing = Pt(14)
     for text, bold in parts:
         run = p.add_run(text)
-        font(run, size=11, bold=bold)
+        font(run, size=11, bold=bold, color=CHARCOAL)
     return p
 
 def h1(text):
-    """Friendly section header: light blue fill band, medium-blue bold text."""
+    """Section header: warm cream fill, forest green bold text."""
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(14)
+    p.paragraph_format.space_before = Pt(16)
     p.paragraph_format.space_after  = Pt(6)
-    p.paragraph_format.left_indent  = Inches(-0.05)
-    set_para_shading(p, "BDD7EE")
+    set_para_shading(p, CREAM)
+    # thin forest green bottom border under header
+    pPr = p._p.get_or_add_pPr()
+    pBdr = OxmlElement("w:pBdr")
+    bot  = OxmlElement("w:bottom")
+    bot.set(qn("w:val"),   "single")
+    bot.set(qn("w:sz"),    "4")
+    bot.set(qn("w:space"), "1")
+    bot.set(qn("w:color"), FOREST_HEX)
+    pBdr.append(bot)
+    pPr.append(pBdr)
     run = p.add_run(f"  {text}")
-    font(run, size=11.5, bold=True, color=BLUE)
+    font(run, size=12, bold=True, color=FOREST)
     return p
 
 def h2(text):
-    """Sub-header: bold slate with a thin left accent."""
+    """Sub-header: warm charcoal bold, muted forest left border."""
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(10)
-    p.paragraph_format.space_after  = Pt(3)
-    add_left_border(p, TEAL_RULE, sz="8")
-    p.paragraph_format.left_indent  = Inches(0.12)
+    p.paragraph_format.space_after  = Pt(4)
+    add_left_border(p, FOREST_HEX, sz="10")
+    p.paragraph_format.left_indent  = Inches(0.14)
     run = p.add_run(f" {text}")
-    font(run, size=11, bold=True, color=SLATE)
+    font(run, size=11, bold=True, color=(55, 70, 50))
     return p
 
 def status_line(tag, text):
@@ -137,50 +161,54 @@ def status_line(tag, text):
     p = doc.add_paragraph()
     p.paragraph_format.left_indent  = Inches(0.2)
     p.paragraph_format.space_after  = Pt(4)
-    p.paragraph_format.space_before = Pt(2)
+    p.paragraph_format.space_before = Pt(3)
     r1 = p.add_run(f"{tag}  ")
-    font(r1, size=9.5, bold=True, color=tag_colors.get(tag, GRAY_D))
+    font(r1, size=9.5, bold=True, color=tag_colors.get(tag, WARM_GRAY))
     r2 = p.add_run(text)
-    font(r2, size=9.5, italic=True, color=GRAY_D)
+    font(r2, size=9.5, italic=True, color=WARM_GRAY)
 
 def quote(text, source):
     p = doc.add_paragraph()
-    p.paragraph_format.left_indent  = Inches(0.35)
-    p.paragraph_format.right_indent = Inches(0.2)
-    p.paragraph_format.space_after  = Pt(6)
-    p.paragraph_format.space_before = Pt(4)
-    add_left_border(p, TEAL_RULE, sz="14")
+    p.paragraph_format.left_indent  = Inches(0.4)
+    p.paragraph_format.right_indent = Inches(0.25)
+    p.paragraph_format.space_after  = Pt(8)
+    p.paragraph_format.space_before = Pt(6)
+    p.paragraph_format.line_spacing = Pt(15)
+    add_left_border(p, FOREST_HEX, sz="16")
+    set_para_shading(p, "F0EDE6")   # very light warm tint behind quotes
     r1 = p.add_run(f'"{text}"')
-    font(r1, size=10.5, italic=True, color=(50, 50, 50))
+    font(r1, size=11, italic=True, color=(55, 55, 50))
     r2 = p.add_run(f"\n  — {source}")
-    font(r2, size=9, italic=True, color=GRAY_D)
+    font(r2, size=9.5, italic=True, color=WARM_GRAY)
 
 def bullet(text, indent=0):
     p = doc.add_paragraph(style="List Bullet")
-    p.paragraph_format.left_indent  = Inches(0.25 + indent * 0.2)
-    p.paragraph_format.space_after  = Pt(3)
-    p.paragraph_format.space_before = Pt(1)
+    p.paragraph_format.left_indent  = Inches(0.3 + indent * 0.2)
+    p.paragraph_format.space_after  = Pt(4)
+    p.paragraph_format.space_before = Pt(2)
+    p.paragraph_format.line_spacing = Pt(14)
     run = p.add_run(text)
-    font(run, size=11)
+    font(run, size=11, color=CHARCOAL)
 
 def mixed(label, rest, indent=0):
     p = doc.add_paragraph(style="List Bullet")
-    p.paragraph_format.space_after  = Pt(4)
-    p.paragraph_format.space_before = Pt(1)
-    p.paragraph_format.left_indent  = Inches(0.25 + indent * 0.2)
+    p.paragraph_format.space_after  = Pt(5)
+    p.paragraph_format.space_before = Pt(2)
+    p.paragraph_format.left_indent  = Inches(0.3 + indent * 0.2)
+    p.paragraph_format.line_spacing = Pt(14)
     r1 = p.add_run(label)
-    font(r1, size=11, bold=True)
+    font(r1, size=11, bold=True, color=FOREST)
     r2 = p.add_run(rest)
-    font(r2, size=11)
+    font(r2, size=11, color=CHARCOAL)
 
 def divider(label):
-    """Part divider: full-width navy band."""
+    """Part divider: deep forest green band."""
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(18)
-    p.paragraph_format.space_after  = Pt(8)
-    set_para_shading(p, "1F6096")
+    p.paragraph_format.space_before = Pt(20)
+    p.paragraph_format.space_after  = Pt(10)
+    set_para_shading(p, DIVIDER_BG)
     run = p.add_run(f"  {label}")
-    font(run, size=11.5, bold=True, color=WHITE)
+    font(run, size=12, bold=True, color=WHITE)
 
 def tbl_header(tbl, cols):
     row = tbl.rows[0]
@@ -188,25 +216,25 @@ def tbl_header(tbl, cols):
         cell = row.cells[i]
         cell.text = ""
         p = cell.paragraphs[0]
-        p.paragraph_format.space_after  = Pt(2)
-        p.paragraph_format.space_before = Pt(2)
+        p.paragraph_format.space_after  = Pt(3)
+        p.paragraph_format.space_before = Pt(3)
         run = p.add_run(text)
         font(run, size=10, bold=True, color=WHITE)
-        set_cell_shading(cell, "2E75B6")
+        set_cell_shading(cell, "3D5436")   # deep forest green header
 
 def tbl_row(tbl, vals, alt=False):
     row = tbl.add_row()
-    fill = "DEEAF1" if alt else "FFFFFF"
+    fill = SAGE_ALT if alt else "FDFBF8"   # pale sage vs warm white
     for i, text in enumerate(vals):
         cell = row.cells[i]
         cell.text = ""
         p = cell.paragraphs[0]
-        p.paragraph_format.space_after  = Pt(2)
-        p.paragraph_format.space_before = Pt(2)
+        p.paragraph_format.space_after  = Pt(3)
+        p.paragraph_format.space_before = Pt(3)
+        p.paragraph_format.line_spacing = Pt(13)
         run = p.add_run(text)
-        font(run, size=10)
-        if alt:
-            set_cell_shading(cell, fill)
+        font(run, size=10, color=CHARCOAL)
+        set_cell_shading(cell, fill)
 
 def spacer(pts=6):
     p = doc.add_paragraph()
@@ -221,7 +249,7 @@ p_banner = doc.add_paragraph()
 p_banner.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p_banner.paragraph_format.space_before = Pt(10)
 p_banner.paragraph_format.space_after  = Pt(0)
-set_para_shading(p_banner, "1F6096")
+set_para_shading(p_banner, DIVIDER_BG)
 r = p_banner.add_run("  Northeast Florida Military Installation Resilience Review  ")
 font(r, size=16, bold=True, color=WHITE)
 
@@ -229,17 +257,17 @@ p_sub = doc.add_paragraph()
 p_sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p_sub.paragraph_format.space_before = Pt(0)
 p_sub.paragraph_format.space_after  = Pt(0)
-set_para_shading(p_sub, "2E75B6")
+set_para_shading(p_sub, "4A7040")   # slightly lighter forest green
 r2 = p_sub.add_run("  Energy Redundancy — Combined Intern Research Contribution  ")
 font(r2, size=12, bold=True, color=WHITE)
 
 spacer(8)
 centered(
     "NAS Jacksonville  ·  NS Mayport  ·  MCSF Blount Island  ·  Camp Blanding JTF",
-    size=10, color=SLATE, space_after=2)
+    size=10, color=(70, 90, 60), space_after=2)
 centered(
     "Duval County and Clay County, Florida   |   Supervisor Review Draft   |   May 2026",
-    size=9.5, italic=True, color=GRAY_D, space_after=10)
+    size=9.5, italic=True, color=WARM_GRAY, space_after=10)
 
 # Annotation key row
 p_key = doc.add_paragraph()
@@ -253,7 +281,7 @@ for tag, col, desc in [
     r = p_key.add_run(tag)
     font(r, size=9.5, bold=True, color=col)
     r2 = p_key.add_run(desc)
-    font(r2, size=9.5, italic=True, color=GRAY_D)
+    font(r2, size=9.5, italic=True, color=WARM_GRAY)
 
 # Scope note
 p_scope = body(
@@ -264,9 +292,9 @@ p_scope = body(
     "Part 1 is a serious mission risk in this specific region. No GIS analysis has been "
     "completed yet — that work is in progress and is documented with pending status. "
     "No formal solutions are proposed.",
-    italic=True, color=SLATE, space_after=4
+    italic=True, color=(80, 90, 75), space_after=4
 )
-add_bottom_border(p_scope, TEAL_RULE, sz="4")
+add_bottom_border(p_scope, FOREST_HEX, sz="4")
 spacer(10)
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -321,7 +349,7 @@ body(
     "geographic, operational, and documented hazard context of Northeast Florida. Every finding "
     "is tied to a confirmed source or clearly annotated as pending. This is the foundation the "
     "GIS analysis will build on.",
-    italic=True, color=SLATE
+    italic=True, color=(80, 90, 75)
 )
 
 # ── 2.1 ──────────────────────────────────────────────────────────────────────
@@ -360,7 +388,7 @@ quote(
 status_line(TAG_CONFIRMED, "Risk ratings and IGSA gap confirmed: MIRR VA (Jan 2026 SC) and Mutual Support Assessment (Feb 2026 TAC).")
 spacer(4)
 
-body("The table below summarizes the four confirmed energy single points of failure.", italic=True, color=SLATE)
+body("The table below summarizes the four confirmed energy single points of failure.", italic=True, color=(80, 90, 75))
 
 t1 = doc.add_table(rows=1, cols=5)
 t1.style = "Table Grid"
@@ -665,7 +693,7 @@ body(
     "pulled to primary sources (NHC reports, PSC storm filings, FEMA declarations) for this "
     "analysis. They should not be cited in any client-facing document until the verification "
     "steps below are completed.",
-    italic=True, color=GRAY_D
+    italic=True, color=WARM_GRAY
 )
 mixed("Hurricane Matthew, October 2016 — ",
       "Caused historic St. Johns River flooding through Jacksonville. A1A reported as flooded. "
