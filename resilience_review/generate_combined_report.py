@@ -445,6 +445,11 @@ gis = [
      "HIFLD substations, NHC SLOSH Cat 3/5",
      "HIFLD Open; NOAA Digital Coast",
      "Which substations fall within confirmed surge extents"),
+    ("FEMA flood zones — effective vs. preliminary",
+     "FEMA NFHL effective maps; FEMA preliminary maps where updated",
+     "FEMA Flood Map Service Center",
+     "Whether flood zone designations near substations have been updated in "
+     "preliminary maps — preliminary maps often show higher risk than effective"),
     ("Access corridors vs. flood zones",
      "FDOT road network, NEFRC CDBG, FEMA NFHL",
      "FDOT GIS; FEMA MSC; Resilient Jax",
@@ -465,6 +470,11 @@ gis = [
      "USGS groundwater data, SJRWMD",
      "USGS National Map; SJRWMD portal",
      "Feasibility constraints for undergrounding at each site"),
+    ("Coastal infrastructure damage estimates — Mayport and Blount Island",
+     "Army Corps of Engineers coastal damage models",
+     "USACE Jacksonville District",
+     "Estimated infrastructure damage under surge scenarios; co-benefit "
+     "analysis for coastal protection investments"),
 ]
 for r in gis:
     tbl_row(t2, r)
@@ -482,6 +492,24 @@ t3 = doc.add_table(rows=1, cols=3)
 t3.style = "Table Grid"
 tbl_header(t3, ["Item", "What Is Known", "What Is Needed Before Use"])
 research = [
+    ("Small Modular Reactors (SMRs) / DoD microreactors",
+     "DoD is actively pursuing on-site microreactors through Project Pele. "
+     "Would eliminate single substation dependency entirely — true on-site "
+     "redundancy independent of civilian grid. Most complete redundancy "
+     "solution identified, also most complex and regulatory-intensive.",
+     "Research DoD Project Pele program and current status. Review NRC SMR "
+     "design approvals. Contact DOE and confirm ENRIL organization (verify "
+     "correct name with manager). Assess regulatory pathway for military "
+     "installations specifically."),
+    ("Electrical infrastructure insurance coverage",
+     "Type of insurance JEA and FPL carry on substations serving these "
+     "installations is unknown. Claims timeline after a storm event affects "
+     "how quickly damaged infrastructure gets repaired — directly extends "
+     "outage duration beyond the physical repair window.",
+     "Contact Florida PSC for utility insurance filing requirements. "
+     "Review JEA and FPL annual reports for insurance disclosures. "
+     "Determine whether FEMA NFIP covers utility substations or whether "
+     "separate commercial flood insurance applies."),
     ("Miramar landfill methane / 21-day islanding",
      "First intern identified Miramar as a potential model. APTIM memo confirms only "
      "'microgrid and energy resilience investments' at Miramar — no landfill methane "
@@ -513,8 +541,42 @@ for r in research:
     tbl_row(t3, r)
 doc.add_paragraph()
 
+# ── Data availability and timeline ────────────────────────────────────────────
+heading("2.7  Data Availability and Project Timeline", level=1)
+body(
+    "Not all data needed for a complete redundancy assessment is publicly available or "
+    "immediately accessible. The following reflects the project's current data situation "
+    "and planned timeline."
+)
+
+heading("Two-Tier GIS Approach", level=2)
+body(
+    "GIS analysis will proceed in two tiers based on data availability:"
+)
+mixed("Tier 1 — Available now: ",
+      "Publicly accessible federal datasets: HIFLD, EIA Form 860, NOAA Digital Coast "
+      "(SLOSH, SLR), FEMA NFHL (effective and preliminary), USDA FS wildfire, FDOT road "
+      "network, USGS groundwater. These can be run immediately and will confirm the "
+      "spatial extent of confirmed MIRR vulnerabilities.")
+mixed("Tier 2 — Requires data agreements: ",
+      "JEA and FPL infrastructure routing, on-installation asset data, NAVFAC outage "
+      "history, Army Corps damage model outputs. Budget approval expected August–September "
+      "2026 will enable formal data sharing agreements for these sources.")
+
+heading("Low-Resolution Data — Documented Uncertainty", level=2)
+body(
+    "Risk datasets in this space are often lower resolution than ideal for substation-level "
+    "analysis. Where dataset resolution limits precision, analysis outputs will include "
+    "explicit uncertainty bounds and the limitation will be documented in methodology notes. "
+    "This is standard practice and does not invalidate the findings — it accurately "
+    "represents what the data can and cannot show."
+)
+note("When downloading any dataset, read the methodology paper and contact the lead "
+     "researcher with questions about resolution limitations and appropriate use cases. "
+     "Researcher contact information is typically in dataset metadata.", kind="GIS")
+
 # ── Sources ───────────────────────────────────────────────────────────────────
-heading("2.7  Sources", level=1)
+heading("2.8  Sources", level=1)
 body("Confirmed MIRR project documents:")
 for s in [
     "NEFRC MIRR Vulnerability Assessment — January 2026 Steering Committee",
@@ -542,12 +604,15 @@ for s in [
     "HIFLD Open Data — military boundaries, transmission lines, substations",
     "EIA Form 860 — substation and generation facility locations",
     "NOAA Digital Coast — SLOSH surge modeling, sea level rise viewer",
-    "FEMA Flood Map Service Center — National Flood Hazard Layer",
+    "FEMA Flood Map Service Center — National Flood Hazard Layer (effective and preliminary)",
     "FDOT GIS — Florida road network",
     "USDA Forest Service Wildfire Hazard Potential — national raster dataset",
     "USGS National Map / 3DEP — elevation and groundwater data",
     "SJRWMD — St. Johns River Water Management District water resource data",
     "Resilient Jacksonville — NEFRC CDBG compound flood model outputs",
+    "USACE Jacksonville District — coastal damage modeling and infrastructure data",
+    "Department of Energy — energy resilience and infrastructure research",
+    "Florida PSC — utility storm hardening filings and niche utility data",
 ]:
     bullet(s)
 
