@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 from uuid import uuid4
 
-from core_logic.orchestrator import ExecutionResult
+from core_logic.hermes_types import ExecutionResult
 
 logger = logging.getLogger("hermes.inspector.general")
 

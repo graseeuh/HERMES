@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 from typing import List, NamedTuple, Tuple
 
-from core_logic.orchestrator import ExecutionResult, ExecutionStatus
+from core_logic.hermes_types import ExecutionResult, ExecutionStatus
 
 logger = logging.getLogger("hermes.inspector.claim_verifier")
 
@@ -275,6 +275,10 @@ class ClaimVerifier:
                 if not near_verb:
                     continue
                 checked.add(path_str)
+                # Reject UNC paths and device paths — Path.exists() on these
+                # can trigger network I/O or block on Windows device handles.
+                if path_str.startswith("\\\\") or path_str.startswith("//") or len(path_str) > 512:
+                    continue
                 try:
                     if not Path(path_str).exists():
                         warnings.append(f"CLAIMED_FILE_NOT_FOUND: {path_str}")

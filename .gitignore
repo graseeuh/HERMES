@@ -9,6 +9,9 @@ __pycache__/
 # Claude settings
 .claude/
 
+# Installed agent skills (third-party, machine-local)
+.agents/
+
 # Environment variables
 .env
 
@@ -71,3 +74,21 @@ data/quarantine/
 
 # Content pipeline (contains Notion IDs in config + downloaded media)
 content_pipeline/
+
+# Transcription cache + extracted frames (machine-local)
+transcription/cache/
+transcription/frames/
+
+# Skill lockfile (machine-local, pairs with .agents/)
+skills-lock.json
+
+# Personal / school / business artifacts (not part of HERMES)
+ARGUS/
+ARGUS_*.pptx
+ARGUS_*.pdf
+Insurance_Bizz_Proposal.pdf
+aptim_resilience/
+mothers_day_card.py
+mothers_day_display/
+tmp_agreement/
+scripts/generate_*.py

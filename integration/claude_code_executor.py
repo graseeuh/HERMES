@@ -7,10 +7,36 @@ No API key needed - uses your existing Claude Pro/Claude Code access.
 import subprocess
 import shutil
 import json
+import logging
 import re
 from dataclasses import dataclass
 from typing import Optional, List
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+# Patterns that attempt to override Claude Code's role or permissions.
+_INJECTION_RE = re.compile(
+    r"(?i)(ignore\s+(all\s+)?(previous|prior|above)\s+instructions?"
+    r"|system\s+override"
+    r"|you\s+are\s+now"
+    r"|disregard\s+(all\s+)?instructions?"
+    r"|forget\s+(all\s+)?(previous|prior|everything)"
+    r"|<\s*/?(?:system|assistant|user)\s*>)"
+)
+_MAX_PROMPT_LENGTH = 20_000
+
+
+def _sanitize_prompt(text: str) -> str:
+    """Truncate and log-warn on detected injection patterns before subprocess hand-off."""
+    if len(text) > _MAX_PROMPT_LENGTH:
+        text = text[:_MAX_PROMPT_LENGTH]
+    if _INJECTION_RE.search(text):
+        logger.warning(
+            "Possible prompt injection pattern detected in executor prompt (first 120 chars): %.120s",
+            text,
+        )
+    return text
 
 
 @dataclass
@@ -102,10 +128,11 @@ class ClaudeCodeExecutor:
                 error="Claude Code CLI not found. Is Claude Code installed?"
             )
 
-        # Build the prompt
+        # Build the prompt and sanitize before handing off to subprocess
         prompt = task
         if context:
             prompt = f"{context}\n\nTask: {task}"
+        prompt = _sanitize_prompt(prompt)
 
         # Build command
         # --print: Output response directly (non-interactive)

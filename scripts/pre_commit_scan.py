@@ -6,9 +6,12 @@ Usage:
     python scripts/pre_commit_scan.py <file1> <file2> ...
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
+
+_SAFE_FILENAME_RE = re.compile(r'^[\w./\\\- ]+$')
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -27,7 +30,7 @@ def get_staged_content(filepath: str) -> str:
 
 
 def main():
-    files = sys.argv[1:]
+    files = [f for f in sys.argv[1:] if _SAFE_FILENAME_RE.match(f)]
     if not files:
         sys.exit(0)
 

@@ -212,10 +212,16 @@ class TaskParser:
         """Extract global context like file names, technologies, etc."""
         context = {}
 
-        # Extract file paths
-        file_patterns = re.findall(r'[\w./\\]+\.\w{1,5}', text)
-        if file_patterns:
-            context['files'] = file_patterns
+        # Extract file paths — validate to relative paths only, no traversal sequences
+        raw_paths = re.findall(r'[\w./\\]+\.\w{1,5}', text)
+        safe_paths = [
+            p for p in raw_paths
+            if '..' not in p
+            and not p.startswith(('\\\\', '//'))
+            and len(p) <= 260
+        ]
+        if safe_paths:
+            context['files'] = safe_paths
 
         # Extract quoted strings (often specific names/identifiers)
         quoted = re.findall(r'["\']([^"\']+)["\']', text)

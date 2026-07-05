@@ -94,7 +94,7 @@ class ApprovalGate:
 
         approval = PendingApproval(
             request_id=request_id,
-            task=task,
+            task=task[:5000],
             matched_patterns=patterns,
             status="pending",
             created_at=now.isoformat(),

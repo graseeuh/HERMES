@@ -489,6 +489,310 @@ def hermes_inspector_report(days: int = 7) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Video / audio transcription (local, free — faster-whisper)
+# ---------------------------------------------------------------------------
+_transcribers = {}
+
+
+def get_transcriber(model_size: str = "base"):
+    """Lazy-initialize and cache a VideoTranscriber per model size."""
+    if model_size not in _transcribers:
+        from transcription import VideoTranscriber
+
+        _transcribers[model_size] = VideoTranscriber(model_size=model_size)
+        logger.info("VideoTranscriber initialized (model=%s)", model_size)
+    return _transcribers[model_size]
+
+
+@mcp.tool()
+def hermes_transcribe_video(
+    media_path: str,
+    model_size: str = "base",
+    language: Optional[str] = None,
+    force: bool = False,
+) -> str:
+    """Transcribe a local video or audio file to text, fully offline.
+
+    Uses faster-whisper locally (no cloud, no API key). The first run downloads
+    the Whisper model once; results are cached on disk so repeat calls on the
+    same file are instant. After calling this, read the returned transcript to
+    extract the subject, summarize, or answer questions about the video.
+
+    Args:
+        media_path: Absolute path to a video/audio file (mp4, mkv, mov, mp3, wav, ...).
+        model_size: tiny | base | small | medium | large-v3 | large-v3-turbo.
+                    Larger = more accurate but slower. Default 'base'.
+        language:   ISO code (e.g. 'en') to skip auto-detection. Optional.
+        force:      Re-transcribe even if a cached result exists.
+    """
+    logger.info("hermes_transcribe_video called: %s (model=%s)", media_path, model_size)
+    try:
+        from transcription import TranscriptionError
+
+        try:
+            transcriber = get_transcriber(model_size)
+        except TranscriptionError as exc:
+            return json.dumps({"status": "error", "error": str(exc)})
+
+        try:
+            data = transcriber.transcribe(media_path, language=language, force=force)
+        except TranscriptionError as exc:
+            return json.dumps({"status": "error", "error": str(exc)})
+
+        return json.dumps({"status": "ok", **data}, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        logger.exception("hermes_transcribe_video failed")
+        return json.dumps({"status": "error", "error": str(exc)})
+
+
+@mcp.tool()
+def hermes_list_transcripts() -> str:
+    """List all cached video/audio transcripts (metadata only, no full text).
+
+    Use this to see what has already been transcribed before re-running, or to
+    find the fingerprint/name to pass to hermes_get_transcript.
+    """
+    logger.info("hermes_list_transcripts called")
+    try:
+        transcriber = get_transcriber()
+        items = transcriber.list_cached()
+        return json.dumps({"status": "ok", "count": len(items), "transcripts": items},
+                          ensure_ascii=False, indent=2)
+    except Exception as exc:
+        logger.exception("hermes_list_transcripts failed")
+        return json.dumps({"status": "error", "error": str(exc)})
+
+
+@mcp.tool()
+def hermes_get_transcript(key: str, query: Optional[str] = None, window: int = 1) -> str:
+    """Retrieve a cached transcript for follow-up Q&A and search.
+
+    Pass a fingerprint or file name (from hermes_list_transcripts). Without a
+    query, returns the full cached transcript so you can answer questions about
+    it. With a query, returns only the matching timestamped segments.
+
+    Args:
+        key:    Transcript fingerprint or original file name.
+        query:  Optional substring to search for within the transcript.
+        window: Neighbouring segments of context to include per match (default 1).
+    """
+    logger.info("hermes_get_transcript called: key=%s query=%s", key, query)
+    try:
+        from transcription import TranscriptionError
+
+        transcriber = get_transcriber()
+        if query:
+            try:
+                hits = transcriber.search(key, query, window=window)
+            except TranscriptionError as exc:
+                return json.dumps({"status": "error", "error": str(exc)})
+            return json.dumps(
+                {"status": "ok", "key": key, "query": query,
+                 "match_count": len(hits), "matches": hits},
+                ensure_ascii=False, indent=2,
+            )
+
+        data = transcriber.get_cached(key)
+        if data is None:
+            return json.dumps({"status": "error",
+                               "error": f"No cached transcript for {key!r}. "
+                                        "Call hermes_list_transcripts to see available ones."})
+        return json.dumps({"status": "ok", **data}, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        logger.exception("hermes_get_transcript failed")
+        return json.dumps({"status": "error", "error": str(exc)})
+
+
+_frame_extractor = None
+
+
+def get_frame_extractor():
+    """Lazy-initialize and return the FrameExtractor singleton."""
+    global _frame_extractor
+    if _frame_extractor is None:
+        from transcription import FrameExtractor
+
+        _frame_extractor = FrameExtractor()
+        logger.info("FrameExtractor initialized")
+    return _frame_extractor
+
+
+@mcp.tool()
+def hermes_extract_frames(
+    media_path: str,
+    start: Optional[float] = None,
+    end: Optional[float] = None,
+    max_frames: Optional[int] = None,
+    resolution: int = 512,
+    force: bool = False,
+) -> str:
+    """Extract still frames from a local video so they can be visually inspected.
+
+    Samples JPEG frames at duration-scaled intervals and returns their file
+    paths with timestamps. Read those image paths to actually SEE what is on
+    screen (UI state, slides, objects, on-screen text). Fully local — no cloud.
+
+    Args:
+        media_path: Absolute path to a local video file (mp4, mkv, mov, webm, ...).
+        start:      Optional clip start in seconds (focus the frame budget).
+        end:        Optional clip end in seconds.
+        max_frames: Override the duration-scaled default (hard cap 100).
+        resolution: JPEG width in px, height keeps aspect (default 512).
+        force:      Re-extract even if a cached frame set exists.
+    """
+    logger.info("hermes_extract_frames called: %s (start=%s end=%s)", media_path, start, end)
+    try:
+        from transcription import FrameExtractionError
+
+        extractor = get_frame_extractor()
+        try:
+            data = extractor.extract(media_path, start=start, end=end,
+                                     max_frames=max_frames, resolution=resolution,
+                                     force=force)
+        except FrameExtractionError as exc:
+            return json.dumps({"status": "error", "error": str(exc)})
+
+        data["hint"] = "Read each frame path to view it, then describe what is shown."
+        return json.dumps({"status": "ok", **data}, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        logger.exception("hermes_extract_frames failed")
+        return json.dumps({"status": "error", "error": str(exc)})
+
+
+@mcp.tool()
+def hermes_watch_video(
+    media_path: str,
+    start: Optional[float] = None,
+    end: Optional[float] = None,
+    max_frames: Optional[int] = None,
+    resolution: int = 512,
+    model_size: str = "base",
+    language: Optional[str] = None,
+) -> str:
+    """Watch a local video: extract frames AND transcribe audio in one call.
+
+    Returns timestamped frame paths plus the full transcript so you can both
+    SEE what is displayed and HEAR what is said, then answer questions about
+    the video. Fully local and free (PyAV frames + faster-whisper). Read the
+    returned frame paths to view them.
+
+    Args:
+        media_path: Absolute path to a local video file.
+        start, end: Optional clip window in seconds (focuses frames + is noted).
+        max_frames: Override duration-scaled frame count (hard cap 100).
+        resolution: Frame JPEG width in px (default 512).
+        model_size: Whisper model: tiny|base|small|medium|large-v3|large-v3-turbo.
+        language:   ISO code (e.g. 'en') to skip auto-detection.
+    """
+    logger.info("hermes_watch_video called: %s", media_path)
+    try:
+        from transcription import FrameExtractionError, TranscriptionError
+
+        response = {"status": "ok", "media_path": media_path}
+
+        # Visual track
+        try:
+            frames = get_frame_extractor().extract(
+                media_path, start=start, end=end, max_frames=max_frames,
+                resolution=resolution,
+            )
+            response["frames"] = frames
+        except FrameExtractionError as exc:
+            response["frames_error"] = str(exc)
+
+        # Audio track
+        try:
+            transcript = get_transcriber(model_size).transcribe(
+                media_path, language=language,
+            )
+            response["transcript"] = transcript
+        except TranscriptionError as exc:
+            response["transcript_error"] = str(exc)
+
+        if "frames" not in response and "transcript" not in response:
+            return json.dumps({"status": "error",
+                               "error": "Could not extract frames or transcript.",
+                               "frames_error": response.get("frames_error"),
+                               "transcript_error": response.get("transcript_error")})
+
+        response["hint"] = ("Read each frame path to view it; combine what you see "
+                            "with the transcript to answer questions about the video.")
+        return json.dumps(response, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        logger.exception("hermes_watch_video failed")
+        return json.dumps({"status": "error", "error": str(exc)})
+
+
+# ---------------------------------------------------------------------------
+# Mothers Day card server (one-shot local HTTP)
+# ---------------------------------------------------------------------------
+_card_server = None
+_card_server_port = None
+
+
+@mcp.tool()
+def hermes_open_card(port: int = 8989) -> str:
+    """Serve the Mother's Day card on the local network.
+
+    Starts a one-time HTTP server so any device on the same WiFi can open the
+    card in a browser.  Call once; subsequent calls return the existing URL.
+
+    Args:
+        port: Local port to serve on (default: 8989).
+    """
+    import socket
+    import threading
+    from http.server import SimpleHTTPRequestHandler, HTTPServer
+
+    global _card_server, _card_server_port
+
+    card_path = Path(__file__).parent / "mothers_day_card.html"
+    if not card_path.exists():
+        return json.dumps({"status": "error", "error": "mothers_day_card.html not found in HERMES directory"})
+
+    if _card_server is not None:
+        local_ip = socket.gethostbyname(socket.gethostname())
+        return json.dumps({
+            "status": "already_running",
+            "url": f"http://{local_ip}:{_card_server_port}/mothers_day_card.html",
+            "local_url": f"http://localhost:{_card_server_port}/mothers_day_card.html",
+        })
+
+    serve_dir = str(Path(__file__).parent)
+
+    class QuietHandler(SimpleHTTPRequestHandler):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, directory=serve_dir, **kwargs)
+
+        def log_message(self, fmt, *args):
+            logger.debug("HTTP: " + fmt, *args)
+
+    try:
+        server = HTTPServer(("", port), QuietHandler)
+    except OSError as exc:
+        return json.dumps({"status": "error", "error": f"Could not bind port {port}: {exc}"})
+
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    _card_server = server
+    _card_server_port = port
+
+    try:
+        local_ip = socket.gethostbyname(socket.gethostname())
+    except Exception:
+        local_ip = "localhost"
+
+    logger.info("Card server started on port %d", port)
+    return json.dumps({
+        "status": "started",
+        "url": f"http://{local_ip}:{port}/mothers_day_card.html",
+        "local_url": f"http://localhost:{port}/mothers_day_card.html",
+        "tip": "Share the 'url' with Mom — she can open it on her phone while on the same WiFi.",
+    }, indent=2)
+
+
+# ---------------------------------------------------------------------------
 # MCP Resources
 # ---------------------------------------------------------------------------
 @mcp.resource("hermes://templates")

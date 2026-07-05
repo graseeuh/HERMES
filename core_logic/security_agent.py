@@ -3,6 +3,7 @@ HERMES Security & Quality Assurance Agent
 Validates code for security vulnerabilities, edge cases, and efficiency.
 """
 
+import logging
 import os
 import re
 import ast
@@ -11,6 +12,8 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Set
 from enum import Enum
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 class SeverityLevel(Enum):
@@ -345,6 +348,7 @@ class SecurityAgent:
                         code_snippet=line.strip()[:80]
                     ))
 
+        issues.extend(self._run_bandit_on_content(content, filename))
         return issues
 
     def run_full_audit(self, exclude_dirs: List[str] = None) -> AuditReport:
@@ -396,6 +400,7 @@ class SecurityAgent:
                 content = f.read()
                 lines = content.split('\n')
         except Exception as e:
+            logger.warning("Could not audit file %s: %s", file_path, e)
             return FileAudit(
                 file_path=str(file_path),
                 file_size=0,
@@ -429,6 +434,7 @@ class SecurityAgent:
         issues.extend(self._check_patterns(content, lines, file_path, self.ERROR_HANDLING_PATTERNS, IssueCategory.ERROR_HANDLING))
         issues.extend(self._check_input_validation(content, lines, file_path))
         issues.extend(self._check_resource_management(content, lines, file_path))
+        issues.extend(self._run_bandit_on_file(file_path))
 
         return FileAudit(
             file_path=str(file_path),
@@ -552,6 +558,98 @@ class SecurityAgent:
                         code_snippet=lines[line_num - 1].strip() if line_num <= len(lines) else None
                     ))
 
+        return issues
+
+    def _run_bandit_on_file(self, file_path: Path) -> List[SecurityIssue]:
+        """Run bandit on a Python file and return findings as SecurityIssue objects."""
+        import subprocess
+        import json
+        import sys
+
+        severity_map = {
+            "HIGH": SeverityLevel.HIGH,
+            "MEDIUM": SeverityLevel.MEDIUM,
+            "LOW": SeverityLevel.LOW,
+        }
+        try:
+            result = subprocess.run(
+                [sys.executable, "-m", "bandit", "-f", "json", "-q", str(file_path)],
+                capture_output=True, text=True, timeout=30
+            )
+            if not result.stdout:
+                return []
+            data = json.loads(result.stdout)
+        except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
+            return []
+
+        issues = []
+        for finding in data.get("results", []):
+            sev = severity_map.get(finding.get("issue_severity", "LOW"), SeverityLevel.LOW)
+            issues.append(SecurityIssue(
+                category=IssueCategory.SECURITY,
+                severity=sev,
+                file_path=str(file_path),
+                line_number=finding.get("line_number"),
+                title=f"Bandit [{finding.get('test_id', '')}]: {finding.get('test_name', '')}",
+                description=finding.get("issue_text", ""),
+                recommendation=f"Bandit rule {finding.get('test_id', '')} — see bandit.readthedocs.io",
+                code_snippet=finding.get("code", "").strip()[:80] if finding.get("code") else None,
+            ))
+        return issues
+
+    def _run_bandit_on_content(self, content: str, filename: str) -> List[SecurityIssue]:
+        """Run bandit on staged string content via a temp file."""
+        import subprocess
+        import json
+        import sys
+        import tempfile
+        import os as _os
+
+        if not filename.endswith(".py"):
+            return []
+
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".py", delete=False, encoding="utf-8"
+            ) as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+
+            result = subprocess.run(
+                [sys.executable, "-m", "bandit", "-f", "json", "-q", tmp_path],
+                capture_output=True, text=True, timeout=30
+            )
+            if not result.stdout:
+                return []
+            data = json.loads(result.stdout)
+        except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
+            return []
+        finally:
+            if tmp_path:
+                try:
+                    _os.unlink(tmp_path)
+                except OSError:
+                    pass
+
+        severity_map = {
+            "HIGH": SeverityLevel.HIGH,
+            "MEDIUM": SeverityLevel.MEDIUM,
+            "LOW": SeverityLevel.LOW,
+        }
+        issues = []
+        for finding in data.get("results", []):
+            sev = severity_map.get(finding.get("issue_severity", "LOW"), SeverityLevel.LOW)
+            issues.append(SecurityIssue(
+                category=IssueCategory.SECURITY,
+                severity=sev,
+                file_path=filename,
+                line_number=finding.get("line_number"),
+                title=f"Bandit [{finding.get('test_id', '')}]: {finding.get('test_name', '')}",
+                description=finding.get("issue_text", ""),
+                recommendation=f"Bandit rule {finding.get('test_id', '')} — see bandit.readthedocs.io",
+                code_snippet=finding.get("code", "").strip()[:80] if finding.get("code") else None,
+            ))
         return issues
 
     def _check_resource_management(self, content: str, lines: List[str], file_path: Path) -> List[SecurityIssue]:
