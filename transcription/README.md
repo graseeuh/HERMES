@@ -58,13 +58,13 @@ Last worked on: 2026-06-14. Status below reflects that session.
 - `faster-whisper` (pulls in `ctranslate2`, `av`, `onnxruntime`, `tokenizers`, `huggingface-hub`)
 - `Pillow` (was already present)
 
-These are NOT yet in `requirements.txt` (see Pending).
+Both are now in `requirements.txt`.
 
 ## How to use
 
 1. Restart the HERMES MCP server so it registers the new tools:
-   `venv/Scripts/python.exe main.py --mcp`
-2. Ask, for example: "Watch `C:\path\to\demo.mp4` and tell me what is shown and said."
+   `python main.py --mcp` (from an activated venv)
+2. Ask, for example: "Watch `/path/to/demo.mp4` and tell me what is shown and said."
 3. First real video triggers a one time Whisper model download (~145MB for
    `base`). Cached by faster-whisper after that.
 
@@ -80,10 +80,7 @@ Tip: bump `model_size` to `small` or `medium` for noisy or accented audio.
    pointed at directly, not just local files. This is the only capability
    `claude-video` has that HERMES does not. Plan: download to a temp dir with
    `yt-dlp`, then feed the local file into the existing tools.
-2. **`requirements.txt`**: add `faster-whisper` and `Pillow`.
-3. **`CLAUDE.md`**: note the new `transcription/` package and its tools under
-   architecture, and add a line to the test section if tests get written.
-4. (Optional) Unit tests for `VideoTranscriber` and `FrameExtractor`.
+2. (Optional) Unit tests for `VideoTranscriber` and `FrameExtractor`.
 
 ## Why this design over alternatives
 

@@ -1,10 +1,18 @@
 # HERMES Project Instructions
 
 ## Quick Reference
-- Python 3.14, Windows 11, venv at `venv/`
-- Run: `venv/Scripts/python.exe`
-- Test: `venv/Scripts/python.exe -m pytest tests/ -v`
-- MCP server: `venv/Scripts/python.exe main.py --mcp`
+Cross-platform: developed on Windows 11, currently running on macOS. venv at `venv/`.
+Substitute `<py>` below with the interpreter for your platform:
+
+| | macOS/Linux | Windows |
+|---|---|---|
+| `<py>` | `venv/bin/python` | `venv\Scripts\python.exe` |
+| Activate | `source venv/bin/activate` | `.\venv\Scripts\activate` |
+
+- Setup (either platform): `python scripts/setup.py`
+- Test: `<py> -m pytest tests/ -v`
+- MCP server: `<py> main.py --mcp`
+- `mcp` must stay pinned `<2` — v2 renamed `FastMCP` to `MCPServer` and `mcp_server.py` uses the v1 API
 
 ## Architecture — Three-Layer Oversight
 ```
@@ -17,9 +25,19 @@ These three layers are **structurally isolated**. Never add cross-calls between 
 
 Do not refactor these into a shared module or add imports between layers.
 
-## Windows Gotchas
+`transcription/` is a standalone package (not part of the oversight stack) —
+local video/audio comprehension via faster-whisper + PyAV. Exposed as 5 MCP
+tools in `mcp_server.py` (`hermes_transcribe_video`, `hermes_list_transcripts`,
+`hermes_get_transcript`, `hermes_extract_frames`, `hermes_watch_video`).
+
+## Portability Notes
+The repo must keep working on **both macOS and Windows**. Conventions:
+- Build every path with `pathlib` and the `/` operator — never string-concatenate separators
 - Use `os.replace(tmp, dest)` for atomic file writes — `Path.rename()` raises FileExistsError on Windows if dest exists
-- Force UTF-8 stdout when using Unicode symbols: `sys.stdout.reconfigure(encoding='utf-8', errors='replace')`
+- Never hardcode `venv/bin` or `venv/Scripts`; derive it (see `scripts/setup.py:venv_python`)
+- CLI entry points call `_force_utf8_stdout()` before printing — report output contains `•`/`—`, which are
+  undefined in cp437/cp850/cp932/cp949. Wrap `reconfigure` in try/except; it is absent on replaced streams.
+- `tempfile.NamedTemporaryFile` needs `delete=False` + explicit unlink — Windows can't reopen an open temp file
 - Test fixture credential strings must be split across variables to avoid pre-commit false positives
 
 ## Code Style

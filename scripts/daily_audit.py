@@ -1,7 +1,7 @@
 """HERMES Daily Audit — analyzes Inspector General data and suggests improvements.
 
 Standalone script, stdlib only, no HERMES imports.
-Run: venv/Scripts/python.exe scripts/daily_audit.py
+Run: python scripts/daily_audit.py  (from an activated venv)
 """
 
 import json
@@ -557,7 +557,11 @@ class AuditReporter:
 # ---------------------------------------------------------------------------
 
 def main():
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError):
+            pass
 
     project_root = Path(__file__).resolve().parent.parent
     log_dir = project_root / "inspector" / "logs"

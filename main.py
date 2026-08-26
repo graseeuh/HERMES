@@ -14,6 +14,7 @@ Usage:
 """
 
 import os
+import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -168,9 +169,18 @@ class HERMES:
             print(f"[HERMES] Agents used: {len(result.agents_used)}, Buffed: {len(result.agents_buffed)}")
 
 
+def _force_utf8_stdout():
+    """Windows consoles default to cp1252; agent output may contain non-ASCII."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError):
+            pass
+
+
 def main():
     """Main entry point for command-line usage."""
-    import sys
+    _force_utf8_stdout()
 
     # MCP server mode: --mcp flag or HERMES_MODE=mcp env var
     if "--mcp" in sys.argv or os.environ.get("HERMES_MODE") == "mcp":

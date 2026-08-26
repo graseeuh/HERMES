@@ -73,8 +73,12 @@ class ClaudeCodeExecutor:
         if claude_path:
             return claude_path
 
-        # Common installation locations on Windows
+        # Common installation locations (macOS/Linux first, then Windows)
         common_paths = [
+            Path.home() / '.local' / 'bin' / 'claude',
+            Path.home() / '.claude' / 'local' / 'claude',
+            Path('/opt/homebrew/bin/claude'),
+            Path('/usr/local/bin/claude'),
             Path.home() / '.claude' / 'claude.exe',
             Path.home() / 'AppData' / 'Local' / 'Programs' / 'claude' / 'claude.exe',
             Path(r'C:\Program Files\Claude\claude.exe'),
