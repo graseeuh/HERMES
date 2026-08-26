@@ -26,15 +26,24 @@ independent Inspector General.
 
 ## Quick Start
 
+Runs on **macOS, Linux, and Windows** (Python 3.13+).
+
 ```bash
-# Activate virtual environment
-.\venv\Scripts\activate
+# One-shot setup: creates venv, installs deps, runs tests,
+# prints the MCP registration command for your platform
+python scripts/setup.py
+```
 
-# MCP server mode (Claude Code integration)
-python main.py --mcp
+Then activate the environment:
 
-# Interactive text mode
-python main.py
+```bash
+source venv/bin/activate      # macOS / Linux
+.\venv\Scripts\activate       # Windows
+```
+
+```bash
+python main.py --mcp   # MCP server mode (Claude Code integration)
+python main.py         # Interactive text mode
 ```
 
 ---
@@ -57,34 +66,50 @@ Configure in `.mcp.json` or `~/.claude/settings.local.json`:
 {
   "mcpServers": {
     "hermes": {
-      "command": "C:\\Users\\<username>\\HERMES\\venv\\Scripts\\python.exe",
-      "args": ["C:\\Users\\<username>\\HERMES\\mcp_server.py"],
+      "command": "/path/to/HERMES/venv/bin/python",
+      "args": ["/path/to/HERMES/mcp_server.py"],
       "env": {
         "HERMES_MODE": "mcp",
-        "PYTHONPATH": "C:\\Users\\<username>\\HERMES"
+        "PYTHONPATH": "/path/to/HERMES"
       }
     }
   }
 }
 ```
 
-### Option 2: Always-On Voice Listener
+On Windows use `Scripts\python.exe` and escaped backslashes:
 
-Continuously listens for "Hey Hermes" wake word:
-
-```bash
-python hermes_listener.py
-# With specific microphone:
-python hermes_listener.py --mic 1
+```json
+{
+  "mcpServers": {
+    "hermes": {
+      "command": "C:\\path\\to\\HERMES\\venv\\Scripts\\python.exe",
+      "args": ["C:\\path\\to\\HERMES\\mcp_server.py"],
+      "env": {
+        "HERMES_MODE": "mcp",
+        "PYTHONPATH": "C:\\path\\to\\HERMES"
+      }
+    }
+  }
+}
 ```
 
-### Option 3: Interactive Text Mode
+Or register it with the Claude Code CLI (`scripts/setup.py` prints this
+pre-filled for your platform):
+
+```bash
+claude mcp add hermes \
+  -e HERMES_MODE=mcp -e PYTHONPATH=/path/to/HERMES \
+  -- /path/to/HERMES/venv/bin/python /path/to/HERMES/mcp_server.py
+```
+
+### Option 2: Interactive Text Mode
 
 ```bash
 python main.py
 ```
 
-### Option 4: Python API
+### Option 3: Python API
 
 ```python
 from main import HERMES
@@ -98,7 +123,7 @@ print(result.summary)
 
 ## MCP Server Mode
 
-HERMES exposes 6 tools when running as an MCP server:
+HERMES exposes 12 tools when running as an MCP server:
 
 ### Normal Task Execution
 
@@ -133,6 +158,20 @@ hermes_approve("req_a1b2c3d4", approved=True, reason="confirmed cleanup")
 | `hermes_status()` | Orchestrator status: agent counts, templates loaded, executor availability. |
 | `hermes_query_agents(status_filter, task_type_filter)` | Query the agent registry. Filter by status or task type. |
 | `hermes_inspector_report(days)` | Inspector General behavioral stats and recent audit log entries. |
+| `hermes_fetch_github(repo, path, ref)` | Fetch a file from GitHub through the 4-layer malicious content scanner. |
+
+### Video Comprehension (local, offline)
+
+| Tool | Description |
+|------|-------------|
+| `hermes_transcribe_video(media_path, model_size, language, force)` | Transcribe a local video/audio file to timestamped text. Cached by file fingerprint. |
+| `hermes_list_transcripts()` | List cached transcripts (metadata only). |
+| `hermes_get_transcript(key, query, window)` | Retrieve a cached transcript; with `query`, returns only matching timestamped segments. |
+| `hermes_extract_frames(media_path, start, end, max_frames, resolution, force)` | Sample JPEG frames at duration-scaled intervals. Returns paths + timestamps. |
+| `hermes_watch_video(media_path, ...)` | Frames **and** transcript in one call — see and hear a video, then answer questions about it. |
+
+Runs entirely on-device via faster-whisper and PyAV. No cloud, no API keys, no
+external ffmpeg binary. First use downloads a Whisper model (~145MB for `base`).
 
 ---
 
@@ -281,27 +320,9 @@ BUFF       SPAWN
 
 ---
 
-## Voice Commands
+## Task Routing
 
-### Wake Words
-
-| Say | Action |
-|-----|--------|
-| "Hey Hermes" | Activates listening |
-| "Hermes" | Activates listening |
-| "Ok Hermes" | Activates listening |
-
-### Built-in Commands
-
-| Say | What Happens |
-|-----|--------------|
-| "Status" | Shows HERMES system status |
-| "Help" | Lists available commands |
-| "Stop listening" / "Quit" | Exits HERMES |
-
-### Task Commands
-
-Any command not matching built-ins is routed to the orchestrator:
+Commands are routed to the agent matching the task type:
 
 ```
 "Write a function to validate emails"  → CODE agent
@@ -455,8 +476,14 @@ HERMES/
 ├── knowledge_base/
 │   └── templates/               # Agent prompt templates
 │
+├── transcription/               # Local video/audio comprehension
+│   ├── transcriber.py           # faster-whisper wrapper, caching, search
+│   └── frames.py                # PyAV frame sampling
+│
 └── scripts/
+    ├── setup.py                 # Cross-platform bootstrap (venv + deps + tests)
     ├── pre_commit_scan.py       # PII/secrets pre-commit hook
+    ├── launch_hermes.sh         # macOS/Linux autostart launcher
     └── launch_hermes.bat        # Windows autostart launcher
 ```
 
@@ -468,7 +495,18 @@ HERMES/
 pip install -r requirements.txt
 ```
 
-Key dependencies: `mcp[cli]`, `anthropic`, `numpy`, `requests`
+Key dependencies: `mcp[cli]` (pinned `<2`), `anthropic`, `numpy`, `requests`,
+`faster-whisper`, `Pillow`
+
+> **Note:** `mcp` must stay pinned below 2.0. v2 renamed `FastMCP` to
+> `MCPServer`; `mcp_server.py` uses the v1 API.
+
+### Platform Support
+
+Tested on macOS (Python 3.13) and Windows 11. The codebase is platform-neutral:
+paths are built with `pathlib`, state files are written atomically via
+`os.replace`, and CLI entry points force UTF-8 output so report symbols
+(`•`, `—`) survive legacy Windows codepages (cp437/cp850/cp932/cp949).
 
 ---
 

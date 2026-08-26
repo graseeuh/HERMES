@@ -29,7 +29,17 @@ def get_staged_content(filepath: str) -> str:
     return result.stdout
 
 
+def _force_utf8_stdout():
+    """Windows consoles default to cp1252; report output contains U+2022/U+2014."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError):
+            pass
+
+
 def main():
+    _force_utf8_stdout()
     files = [f for f in sys.argv[1:] if _SAFE_FILENAME_RE.match(f)]
     if not files:
         sys.exit(0)
